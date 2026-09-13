@@ -1,3 +1,6 @@
 import React from 'react';
-// TODO: Setup Root Navigator
-export default function RootNavigator() { return null; }
+import SplashScreen from '../screens/auth/SplashScreen';
+
+export default function RootNavigator() { 
+  return <SplashScreen />; 
+}

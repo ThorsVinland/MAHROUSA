@@ -4,6 +4,7 @@ import { View, Text, StyleSheet } from 'react-native';
 export default function TaskTrackingScreen() {
   return (
     <View style={styles.container}>
+      <Text style={styles.name}>TaskTrackingScreen</Text>
       <Text style={styles.title}>تتبع المهمة</Text>
     </View>
   );
@@ -15,8 +16,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  title: {
-    fontSize: 18,
+  name: {
+    fontSize: 22,
     fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  title: {
+    fontSize: 16,
+    color: '#666',
   },
 });
