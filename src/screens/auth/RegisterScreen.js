@@ -11,27 +11,29 @@ import {
   TouchableOpacity,
   StatusBar,
   useColorScheme,
-  ScrollView,
-  Image
+  ScrollView
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import theme from '../../theme/colors';
+import { useTheme } from '../../context/ThemeContext';
 import CustomTextInput from '../../components/common/CustomTextInput';
+import CustomPhoneInput from '../../components/common/CustomPhoneInput';
 import CustomButton from '../../components/common/CustomButton';
 
 export default function RegisterScreen({ role, onBack, onGoToLogin }) {
-  const systemColorScheme = useColorScheme();
-  const [themeMode, setThemeMode] = useState(systemColorScheme || 'light');
+  const { themeMode, toggleTheme, isDarkMode, colors } = useTheme();
 
-  useEffect(() => {
-    if (systemColorScheme) setThemeMode(systemColorScheme);
-  }, [systemColorScheme]);
+  const [fullName, setFullName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
 
-  const isDarkMode = themeMode === 'dark';
-  const colors = isDarkMode ? theme.dark : theme.light;
-
-  const toggleTheme = () => {
-    setThemeMode(prevMode => (prevMode === 'dark' ? 'light' : 'dark'));
+  const handleRegister = () => {
+    const finalNumberToSend = '+213' + phoneNumber;
+    
+    console.log("البيانات المرسلة للتسجيل:");
+    console.log("الاسم:", fullName);
+    console.log("الدور:", role);
+    console.log("الرقم المنسق:", finalNumberToSend);
+    // TODO: Send to Database
   };
 
   const pageBgColor = colors.pageBackground || (isDarkMode ? '#121212' : theme.light.pageBackground);
@@ -49,10 +51,11 @@ export default function RegisterScreen({ role, onBack, onGoToLogin }) {
         barStyle={isDarkMode ? 'light-content' : 'dark-content'} 
         backgroundColor={pageBgColor}
       />
-      <KeyboardAvoidingView 
-        style={{ flex: 1 }} 
-        behavior={Platform.OS === 'ios' ? 'padding' : null}
-      >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <KeyboardAvoidingView 
+          style={{ flex: 1 }} 
+          behavior={Platform.OS === 'ios' ? 'padding' : null}
+        >
         <ScrollView 
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
@@ -88,63 +91,35 @@ export default function RegisterScreen({ role, onBack, onGoToLogin }) {
 
           {/* Form Section */}
           <View style={[styles.formContainer, { backgroundColor: cardBgColor }]}>
+            
             <CustomTextInput 
               label="الاسم الكامل" 
               placeholder="أدخل اسمك الكامل" 
               iconName="person-outline"
               themeMode={themeMode}
+              value={fullName}
+              onChangeText={setFullName}
             />
 
-            <CustomTextInput 
-              label="البريد الإلكتروني" 
-              placeholder="أدخل بريدك الإلكتروني" 
-              iconName="mail-outline"
-              keyboardType="email-address"
+            <CustomPhoneInput
+              label="رقم الهاتف"
+              placeholder="أدخل رقم الهاتف"
               themeMode={themeMode}
-            />
-            
-            <CustomTextInput 
-              label="كلمة المرور" 
-              placeholder="أدخل كلمة المرور" 
-              iconName="lock-closed-outline"
-              isPassword={true}
-              themeMode={themeMode}
-            />
-
-            <CustomTextInput 
-              label="تأكيد كلمة المرور" 
-              placeholder="أعد إدخال كلمة المرور" 
-              iconName="lock-closed-outline"
-              isPassword={true}
-              themeMode={themeMode}
+              countryCode="+213"
+              value={phoneNumber}
+              onChangeText={setPhoneNumber}
             />
 
             <CustomButton 
               title="إنشاء حساب" 
-              onPress={() => console.log("Register Pressed")}
+              onPress={handleRegister}
               iconName="person-add-outline"
               style={styles.registerButton}
               themeMode={themeMode}
+              disabled={phoneNumber.length !== 9}
             />
 
-            <View style={styles.dividerContainer}>
-              <View style={[styles.dividerLine, { backgroundColor: isDarkMode ? '#333' : '#E0E0E0' }]} />
-              <Text style={[styles.dividerText, { color: subtitleColor }]}>أو</Text>
-              <View style={[styles.dividerLine, { backgroundColor: isDarkMode ? '#333' : '#E0E0E0' }]} />
-            </View>
 
-            <View style={styles.socialButtonsContainer}>
-              <TouchableOpacity 
-                style={[styles.socialButton, { backgroundColor: cardBgColor, borderColor: isDarkMode ? '#333' : '#E0E0E0' }]}
-                onPress={() => console.log("Google Register Pressed")}
-              >
-                <Image 
-                  source={require('../../assets/icons/google.png')} 
-                  style={styles.socialIcon} 
-                  resizeMode="contain" 
-                />
-              </TouchableOpacity>
-            </View>
           </View>
 
           {/* Footer Section */}
@@ -156,7 +131,8 @@ export default function RegisterScreen({ role, onBack, onGoToLogin }) {
           </View>
 
         </ScrollView>
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 }
@@ -178,7 +154,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
-    marginTop: -20,
+    marginTop: 0,
     width: '100%',
   },
   actionButton: {
@@ -234,41 +210,7 @@ const styles = StyleSheet.create({
   registerButton: {
     marginTop: 20,
   },
-  dividerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-  },
-  dividerText: {
-    marginHorizontal: 10,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  socialButtonsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  socialButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  socialIcon: {
-    width: 30,
-    height: 30,
-  },
+
 
   /* Footer */
   footerContainer: {

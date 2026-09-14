@@ -11,30 +11,24 @@ import {
   TouchableOpacity,
   StatusBar,
   useColorScheme,
-  ScrollView,
-  Image
+  ScrollView
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import theme from '../../theme/colors';
-import CustomTextInput from '../../components/common/CustomTextInput';
+import { useTheme } from '../../context/ThemeContext';
+import CustomPhoneInput from '../../components/common/CustomPhoneInput';
 import CustomButton from '../../components/common/CustomButton';
 
 export default function LoginScreen({ onGoToRegister, onBack }) {
-  const systemColorScheme = useColorScheme();
-  const [themeMode, setThemeMode] = useState(systemColorScheme || 'light');
+  const { themeMode, toggleTheme, isDarkMode, colors } = useTheme();
+  
+  const [phoneNumber, setPhoneNumber] = useState('');
 
-  // تحديث الوضع إذا تم تغييره من إعدادات النظام
-  useEffect(() => {
-    if (systemColorScheme) {
-      setThemeMode(systemColorScheme);
-    }
-  }, [systemColorScheme]);
-
-  const isDarkMode = themeMode === 'dark';
-  const colors = isDarkMode ? theme.dark : theme.light;
-
-  const toggleTheme = () => {
-    setThemeMode(prevMode => (prevMode === 'dark' ? 'light' : 'dark'));
+  const handleLogin = () => {
+    const finalNumberToSend = '+213' + phoneNumber;
+    
+    console.log("رقم الهاتف الذي سيتم إرساله:", finalNumberToSend);
+    // TODO: Send to Database
   };
 
   // تأمين ألوان افتراضية للوضع الداكن إذا كانت فارغة في ملف theme
@@ -50,10 +44,11 @@ export default function LoginScreen({ onGoToRegister, onBack }) {
         barStyle={isDarkMode ? 'light-content' : 'dark-content'} 
         backgroundColor={pageBgColor}
       />
-      <KeyboardAvoidingView 
-        style={{ flex: 1 }} 
-        behavior={Platform.OS === 'ios' ? 'padding' : null}
-      >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <KeyboardAvoidingView 
+          style={{ flex: 1 }} 
+          behavior={Platform.OS === 'ios' ? 'padding' : null}
+        >
         <ScrollView 
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
@@ -79,60 +74,33 @@ export default function LoginScreen({ onGoToRegister, onBack }) {
           {/* Header Section */}
           <View style={styles.headerContainer}>
             <View style={[styles.logoPlaceholder, { backgroundColor: cardBgColor, shadowColor: iconColor }]}>
-              <Ionicons name="shield-checkmark" size={60} color={iconColor} />
+              <Ionicons name="shield-checkmark" size={45} color={iconColor} />
             </View>
-            <Text style={[styles.headerTitle, { color: primaryTextColor }]}>محروسة</Text>
-            <Text style={[styles.headerSubtitle, { color: subtitleColor }]}>مرحباً بك مجدداً! قم بتسجيل الدخول للمتابعة</Text>
+            <Text style={[styles.headerTitle, { color: primaryTextColor }]}>مرحباً بعودتك</Text>
+            <Text style={[styles.headerSubtitle, { color: subtitleColor }]}>قم بتسجيل الدخول للمتابعة</Text>
           </View>
 
           {/* Form Section */}
           <View style={[styles.formContainer, { backgroundColor: cardBgColor }]}>
-            <CustomTextInput 
-              label="البريد الإلكتروني" 
-              placeholder="أدخل بريدك الإلكتروني" 
-              iconName="mail-outline"
-              keyboardType="email-address"
-              themeMode={themeMode}
-            />
             
-            <CustomTextInput 
-              label="كلمة المرور" 
-              placeholder="أدخل كلمة المرور" 
-              iconName="lock-closed-outline"
-              isPassword={true}
+            {/* التسجيل الجديد برقم الهاتف */}
+            <CustomPhoneInput
+              label="رقم الهاتف"
+              placeholder="أدخل رقم الهاتف"
               themeMode={themeMode}
+              countryCode="+213"
+              value={phoneNumber}
+              onChangeText={setPhoneNumber}
             />
-
-            <TouchableOpacity style={styles.forgotPasswordContainer}>
-              <Text style={styles.forgotPasswordText}>نسيت كلمة المرور؟</Text>
-            </TouchableOpacity>
 
             <CustomButton 
               title="تسجيل الدخول" 
-              onPress={() => console.log("Login Pressed")}
+              onPress={handleLogin}
               iconName="log-in-outline"
               style={styles.loginButton}
               themeMode={themeMode}
+              disabled={phoneNumber.length !== 9}
             />
-
-            <View style={styles.dividerContainer}>
-              <View style={[styles.dividerLine, { backgroundColor: isDarkMode ? '#333' : '#E0E0E0' }]} />
-              <Text style={[styles.dividerText, { color: subtitleColor }]}>أو</Text>
-              <View style={[styles.dividerLine, { backgroundColor: isDarkMode ? '#333' : '#E0E0E0' }]} />
-            </View>
-
-            <View style={styles.socialButtonsContainer}>
-              <TouchableOpacity 
-                style={[styles.socialButton, { backgroundColor: cardBgColor, borderColor: isDarkMode ? '#333' : '#E0E0E0' }]}
-                onPress={() => console.log("Google Login Pressed")}
-              >
-                <Image 
-                  source={require('../../assets/icons/google.png')} 
-                  style={styles.socialIcon} 
-                  resizeMode="contain" 
-                />
-              </TouchableOpacity>
-            </View>
           </View>
 
           {/* Footer Section */}
@@ -145,6 +113,7 @@ export default function LoginScreen({ onGoToRegister, onBack }) {
 
         </ScrollView>
       </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 }
@@ -166,7 +135,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
-    marginTop: -20,
+    marginTop: 0,
     width: '100%',
   },
   actionButton: {
@@ -232,41 +201,7 @@ const styles = StyleSheet.create({
   loginButton: {
     marginTop: 8,
   },
-  dividerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-  },
-  dividerText: {
-    marginHorizontal: 10,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  socialButtonsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  socialButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  socialIcon: {
-    width: 30,
-    height: 30,
-  },
+
 
   /* Footer */
   footerContainer: {

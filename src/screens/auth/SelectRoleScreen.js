@@ -7,22 +7,16 @@ import {
   TouchableOpacity,
   StatusBar,
   useColorScheme,
-  ScrollView
+  ScrollView,
+  Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import theme from '../../theme/colors';
+import { useTheme } from '../../context/ThemeContext';
 import CustomButton from '../../components/common/CustomButton';
 
 export default function SelectRoleScreen({ onSelect, onGoToLogin }) {
-  const systemColorScheme = useColorScheme();
-  const [themeMode, setThemeMode] = useState(systemColorScheme || 'light');
-
-  useEffect(() => {
-    if (systemColorScheme) setThemeMode(systemColorScheme);
-  }, [systemColorScheme]);
-
-  const isDarkMode = themeMode === 'dark';
-  const colors = isDarkMode ? theme.dark : theme.light;
+  const { themeMode, toggleTheme, isDarkMode, colors } = useTheme();
 
   const pageBgColor = colors.pageBackground || (isDarkMode ? '#121212' : theme.light.pageBackground);
   const cardBgColor = colors.cardBackground || (isDarkMode ? '#1E1E1E' : '#FFFFFF');
@@ -31,10 +25,6 @@ export default function SelectRoleScreen({ onSelect, onGoToLogin }) {
   const iconColor = colors.primaryDarkBlue || (isDarkMode ? '#4D96FF' : theme.light.primaryDarkBlue);
   const volunteerColor = colors.successGreen || '#27AE60';
   const orgColor = colors.purpleOrganizations || '#8E44AD';
-
-  const toggleTheme = () => {
-    setThemeMode(prevMode => (prevMode === 'dark' ? 'light' : 'dark'));
-  };
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: pageBgColor }]}>
