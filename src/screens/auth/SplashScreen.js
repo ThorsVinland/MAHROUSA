@@ -5,7 +5,6 @@ export default function SplashScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.name}>SplashScreen</Text>
-      <Text style={styles.title}>سبلاش</Text>
     </View>
   );
 }
