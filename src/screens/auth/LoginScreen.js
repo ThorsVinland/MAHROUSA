@@ -3,17 +3,16 @@ import {
   View, 
   Text, 
   StyleSheet, 
-  SafeAreaView,
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
   Alert,
-  ActivityIndicator,
   StatusBar,
   ScrollView
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import theme from '../../theme/colors';
 import { useTheme } from '../../context/ThemeContext';
@@ -34,27 +33,28 @@ export default function LoginScreen({ onGoToRegister, onBack, onGoToVerifyOtp })
     
     try {
       setIsLoading(true);
-      // التحقق من قاعدة البيانات
+      
+      // 1. التحقق من وجود المستخدم في Firestore
       const { exists, role } = await checkUserExists(finalNumberToSend);
       
       if (!exists) {
         setIsLoading(false);
-        Alert.alert('خطأ', 'هذا الرقم غير مسجل، يرجى إنشاء حساب جديد.');
+        Alert.alert('خطأ', 'هذا الرقم غير مسجل، يرجى إنشاء حساب جديد أولاً.');
         return;
       }
 
       setIsLoading(false);
-      // ننتقل لصفحة التحقق ونمرر الرقم المنسق مع الدور المحفوظ
+      // الانتقال لشاشة التحقق
       if (onGoToVerifyOtp) {
         onGoToVerifyOtp(finalNumberToSend, { role, type: 'login' });
       }
     } catch (error) {
       setIsLoading(false);
-      Alert.alert('خطأ', 'حدث خطأ أثناء الاتصال بالخادم، يرجى المحاولة لاحقاً.');
+      console.error('Login error:', error);
+      Alert.alert('خطأ', 'حدث خطأ أثناء الاتصال بقاعدة البيانات، يرجى المحاولة لاحقاً.');
     }
   };
 
-  // تأمين ألوان افتراضية للوضع الداكن إذا كانت فارغة في ملف theme
   const pageBgColor = colors.pageBackground || (isDarkMode ? '#121212' : theme.light.pageBackground);
   const cardBgColor = colors.cardBackground || (isDarkMode ? '#1E1E1E' : '#FFFFFF');
   const primaryTextColor = colors.primaryText || (isDarkMode ? '#FFFFFF' : theme.light.primaryDarkBlue);
@@ -106,7 +106,6 @@ export default function LoginScreen({ onGoToRegister, onBack, onGoToVerifyOtp })
           {/* Form Section */}
           <View style={[styles.formContainer, { backgroundColor: cardBgColor }]}>
             
-            {/* التسجيل الجديد برقم الهاتف */}
             <CustomPhoneInput
               label="رقم الهاتف"
               placeholder="أدخل رقم الهاتف"
@@ -117,7 +116,7 @@ export default function LoginScreen({ onGoToRegister, onBack, onGoToVerifyOtp })
             />
 
             <CustomButton 
-              title="تسجيل الدخول" 
+              title={isLoading ? "جارِ التحقق..." : "تسجيل الدخول"} 
               onPress={handleLogin}
               iconName="log-in-outline"
               style={styles.loginButton}
@@ -152,9 +151,8 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   
-  /* Top Actions */
   topActionsContainer: {
-    flexDirection: 'row-reverse', // الزرار اليمين على اليمين واليسار على اليسار
+    flexDirection: 'row-reverse',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
@@ -173,7 +171,6 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
 
-  /* Header */
   headerContainer: {
     alignItems: 'center',
     marginBottom: 40,
@@ -201,7 +198,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  /* Form */
   formContainer: {
     borderRadius: 20,
     padding: 24,
@@ -211,22 +207,10 @@ const styles = StyleSheet.create({
     shadowRadius: 15,
     elevation: 5,
   },
-  forgotPasswordContainer: {
-    alignSelf: 'flex-start', 
-    marginTop: -4,
-    marginBottom: 24,
-  },
-  forgotPasswordText: {
-    color: theme.light.mainBlue,
-    fontSize: 14,
-    fontWeight: '600',
-  },
   loginButton: {
     marginTop: 8,
   },
 
-
-  /* Footer */
   footerContainer: {
     flexDirection: 'row-reverse',
     justifyContent: 'center',

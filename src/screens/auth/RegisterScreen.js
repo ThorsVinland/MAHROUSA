@@ -5,16 +5,14 @@ import {
   StyleSheet, 
   TouchableWithoutFeedback, 
   Keyboard, 
-  SafeAreaView, 
   KeyboardAvoidingView, 
   Platform,
   TouchableOpacity,
   StatusBar,
-  useColorScheme,
   ScrollView,
-  Alert,
-  ActivityIndicator
+  Alert
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import theme from '../../theme/colors';
 import { useTheme } from '../../context/ThemeContext';
@@ -42,7 +40,8 @@ export default function RegisterScreen({ role, onBack, onGoToLogin, onGoToVerify
     
     try {
       setIsLoading(true);
-      // التحقق من قاعدة البيانات
+      
+      // 1. التحقق من قاعدة البيانات (هل الرقم مسجل مسبقاً؟)
       const { exists } = await checkUserExists(finalNumberToSend);
       
       if (exists) {
@@ -52,13 +51,14 @@ export default function RegisterScreen({ role, onBack, onGoToLogin, onGoToVerify
       }
 
       setIsLoading(false);
-      // ننتقل لصفحة التحقق ونمرر الرقم المنسق
+      // الانتقال لصفحة التحقق
       if (onGoToVerifyOtp) {
         onGoToVerifyOtp(finalNumberToSend, { fullName, role, type: 'register' });
       }
     } catch (error) {
       setIsLoading(false);
-      Alert.alert('خطأ', 'حدث خطأ أثناء الاتصال بالخادم، يرجى المحاولة لاحقاً.');
+      console.error('Register error:', error);
+      Alert.alert('خطأ', 'حدث خطأ أثناء الاتصال بقاعدة البيانات، يرجى المحاولة لاحقاً.');
     }
   };
 
@@ -137,14 +137,13 @@ export default function RegisterScreen({ role, onBack, onGoToLogin, onGoToVerify
             />
 
             <CustomButton 
-              title="إنشاء حساب" 
+              title={isLoading ? "جارِ التحقق..." : "إنشاء حساب"} 
               onPress={handleRegister}
               iconName="person-add-outline"
               style={styles.registerButton}
               themeMode={themeMode}
               disabled={phoneNumber.length !== 9 || isLoading}
             />
-
 
           </View>
 
@@ -174,7 +173,6 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   
-  /* Top Actions */
   topActionsContainer: {
     flexDirection: 'row-reverse',
     justifyContent: 'space-between',
@@ -195,7 +193,6 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
 
-  /* Header */
   headerContainer: {
     alignItems: 'center',
     marginBottom: 40,
@@ -223,7 +220,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  /* Form */
   formContainer: {
     borderRadius: 20,
     padding: 24,
@@ -237,8 +233,6 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
 
-
-  /* Footer */
   footerContainer: {
     flexDirection: 'row-reverse',
     justifyContent: 'center',

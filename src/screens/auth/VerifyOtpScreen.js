@@ -5,7 +5,6 @@ import {
   StyleSheet, 
   TouchableWithoutFeedback, 
   Keyboard, 
-  SafeAreaView, 
   KeyboardAvoidingView, 
   Platform,
   TouchableOpacity,
@@ -13,11 +12,12 @@ import {
   TextInput,
   Alert
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import theme from '../../theme/colors';
 import { useTheme } from '../../context/ThemeContext';
 import CustomButton from '../../components/common/CustomButton';
-import { registerNewUser } from '../../services/authService';
+import { registerNewUser, verifyOtpCode } from '../../services/authService';
 import { normalizeDigits, formatPhoneNumberDisplay } from '../../utils/formatters';
 
 export default function VerifyOtpScreen({ phoneNumber, flowData, onVerifySuccess, onBack }) {
@@ -36,7 +36,6 @@ export default function VerifyOtpScreen({ phoneNumber, flowData, onVerifySuccess
   const OTP_LENGTH = 6;
 
   const handleOtpChange = (text) => {
-    // تنظيف وتحويل أي أرقام عربية إلى أرقام إنجليزية وقصرها على 6 أرقام
     const cleaned = normalizeDigits(text).substring(0, OTP_LENGTH);
     setOtp(cleaned);
   };
@@ -44,33 +43,38 @@ export default function VerifyOtpScreen({ phoneNumber, flowData, onVerifySuccess
   const handleVerify = async () => {
     const cleanOtp = normalizeDigits(otp).trim();
 
-    // محاكاة للتحقق - حالياً نعتبر 123456 هو الرمز الصحيح
-    if (cleanOtp === '123456') {
-      try {
-        setIsLoading(true);
-        if (flowData?.type === 'register') {
-          // إنشاء حساب جديد في قاعدة البيانات (users + المجموعة الخاصة بالدور)
-          await registerNewUser(phoneNumber, flowData.fullName, flowData.role);
-          setIsLoading(false);
-          onVerifySuccess(flowData.role);
-        } else if (flowData?.type === 'login') {
-          // الدخول مباشرة
-          setIsLoading(false);
-          onVerifySuccess(flowData.role);
-        }
-      } catch (error) {
-        setIsLoading(false);
-        console.error('Firestore operation error:', error);
+    if (cleanOtp.length !== OTP_LENGTH) {
+      Alert.alert('تنبيه', 'يرجى إدخال الرمز كاملاً (6 أرقام).');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+
+      // 1. التحقق من الرمز مقارنة بالمسجل في Firebase
+      await verifyOtpCode(phoneNumber, cleanOtp);
+
+      // 2. بعد نجاح التحقق:
+      if (flowData?.type === 'register') {
+        // حفظ بيانات المستخدم في Firestore
+        await registerNewUser(phoneNumber, flowData.fullName, flowData.role);
+      }
+      
+      setIsLoading(false);
+      onVerifySuccess(flowData?.role);
+
+    } catch (error) {
+      setIsLoading(false);
+      console.error('OTP verification error:', error);
+      
+      if (error?.message === 'INVALID_CODE') {
+        Alert.alert('رمز خاطئ', 'رمز التحقق غير متطابق مع الرمز المسجل في Firebase Auth. يرجى المحاولة مرة أخرى.');
+      } else {
         Alert.alert(
           'خطأ في الحفظ', 
-          'حدث مشكل أثناء تسجيل بياناتك في قاعدة البيانات. يرجى التأكد من اتصالك بالإنترنت ومن صلاحيات Firebase Rules.'
+          'حدث خطأ أثناء حفظ البيانات في Firestore، يرجى التأكد من اتصالك بالإنترنت.'
         );
       }
-    } else {
-      Alert.alert(
-        'رمز غير صحيح', 
-        'رمز التحقق المدخل غير صحيح. (رمز الاختبار هو: 123456)'
-      );
     }
   };
 
@@ -125,7 +129,7 @@ export default function VerifyOtpScreen({ phoneNumber, flowData, onVerifySuccess
               </View>
               <Text style={[styles.headerTitle, { color: primaryTextColor }]}>التحقق من رقم الهاتف</Text>
               <Text style={[styles.headerSubtitle, { color: subtitleColor }]}>
-                لقد أرسلنا رمزاً مكوّناً من 6 أرقام إلى:
+                أدخل رمز التحقق الخاص بـ:
               </Text>
               <Text style={[styles.phoneNumberText, { color: primaryTextColor }]}>
                 {formatPhoneNumberDisplay(phoneNumber)}
@@ -166,14 +170,6 @@ export default function VerifyOtpScreen({ phoneNumber, flowData, onVerifySuccess
               themeMode={themeMode}
               disabled={otp.length !== OTP_LENGTH || isLoading}
             />
-
-            {/* خيار إعادة الإرسال */}
-            <View style={styles.resendContainer}>
-              <Text style={[styles.resendText, { color: subtitleColor }]}>لم تتلقَ الرمز؟ </Text>
-              <TouchableOpacity onPress={() => console.log('Resend OTP')}>
-                <Text style={[styles.resendAction, { color: iconColor }]}>إعادة إرسال</Text>
-              </TouchableOpacity>
-            </View>
 
           </View>
         </KeyboardAvoidingView>
@@ -277,16 +273,4 @@ const styles = StyleSheet.create({
     marginTop: 10,
     width: '100%',
   },
-  resendContainer: {
-    flexDirection: 'row-reverse',
-    marginTop: 30,
-    alignItems: 'center',
-  },
-  resendText: {
-    fontSize: 15,
-  },
-  resendAction: {
-    fontSize: 15,
-    fontWeight: '700',
-  }
 });
