@@ -1,56 +1,204 @@
-# Welcome to your Expo app 👋
+# 🇩🇿 محروسة | MAHROUSA — منصة التنسيق الإغاثي والعمل التطوعي
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+تطبيق محمول احترافي مبني باستخدام **React Native (Expo SDK 57)** و **TypeScript**، صُمم خصيصاً لإدارة جهود التضامن والعمل الميداني والإغاثي في الجزائر، والربط الفعّال بين المتطوعين والجمعيات الخيرية والهيئات الميدانية.
 
-## Get started
+---
 
-1. Install dependencies
+## 📑 فهرس المحتويات
+1. [نظرة عامة على المشروع](#-نظرة-عامة-على-المشروع)
+2. [المعمارية وإعادة هيكلة المشروع (Clean Architecture)](#-المعمارية-وإعادة-هيكلة-المشروع-clean-architecture)
+3. [نظام الأدوار والمصادقة (Auth & Role System)](#-نظام-الأدوار-والمصادقة-auth--role-system)
+4. [نظام التصميم وتجربة المستخدم (Design System & Open Space)](#-نظام-التصميم-وتجربة-المستخدم-design-system--open-space)
+5. [المكونات التفاعلية وحل المشاكل التقنية](#-المكونات-التفاعلية-وحل-المشاكل-التقنية)
+6. [التقنيات والمكتبات المستخدمة (Tech Stack)](#-التقنيات-والمكتبات-المستخدمة-tech-stack)
+7. [هيكل المجلدات المفصل (Directory Structure)](#-هيكل-المجلدات-المفصل-directory-structure)
+8. [دليل التثبيت والتشغيل (Getting Started)](#-دليل-التثبيت-والتشغيل-getting-started)
 
-   ```bash
-   npm install
-   ```
+---
 
-2. Start the app
+## 🌟 نظرة عامة على المشروع
+يقوم تطبيق **محروسة** بتنظيم وتوجيه المتطوعين نحو المبادرات واحتياجات الجمعيات الميدانية في كافة ربوع الجزائر (عبر 58 ولاية)، وتوفير لوحات قيادة رقمية للجمعيات لإعلان الاحتياجات وإدارة وتتبع المهام التضامنية وتوثيق ساعات العمل التطوعي.
 
-   ```bash
-   npx expo start --clean
-   ```
+---
 
-In the output, you'll find options to open the app in a
+## 🏗️ المعمارية وإعادة هيكلة المشروع (Clean Architecture)
+تمت إعادة هيكلة التطبيق من الصفر وفق معايير **Clean Architecture** والمبادئ البرمجية لـ **Robert C. Martin (Uncle Bob)** مع اعتماد **TypeScript Strict Mode** الكامل:
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+1. **فصل طبقة البيانات والنماذج (Types & Schemas):**
+   - تم تعريف الأنواع الصارمة في `src/types/auth.types.ts` دون استخدام أي نوع `any`.
+   - تم بناء مخططات التحقق الصارمة باستخدام **Zod** في `src/validation/authSchemas.ts` للتأكد من صحة أرقام الهواتف الجزائرية (`05/06/07`) والبيانات القانونية للجمعيات والكلمات السرية.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+2. **طبقة إدارة الحالة الدائمة (State Management via Zustand):**
+   - استبدال السياقات التقليدية بـ `src/store/authStore.ts` المعتمد على **Zustand** و **AsyncStorage** لحفظ جلسات المستخدمين وتوكن المصادقة تلقائياً دون فقدان الجلسة عند إغلاق التطبيق.
 
-## Get a fresh project
+3. **طبقة الخدمات والاتصال بالشبكة (API Layer):**
+   - إنشاء عميل **Axios** مركزي في `src/services/authService.ts` مزود بـ `Interceptors` للحقن التلقائي للـ Bearer Token ومعالجة أخطاء الشبكة، مع توفير وضع محاكاة محلي (Offline/Dev Fallback) لتسهيل التطوير والاختبار دون توقف.
 
-When you're ready, run:
+4. **فصل منطق الشاشات داخل خطافات مخصصة (Custom Hooks):**
+   - تم تفريغ الشاشات من المنطق البرمجي ونقله إلى خطافات مخصصة (`useVolunteerSignUp`, `useVolunteerLogin`, `useOrganizationSignUp`, `useOrganizationLogin`) للحفاظ على ملفات الشاشات قصيرة ومركزة على الواجهة (أقل من 200 سطر للملف).
 
-```bash
-npm run reset-project
+---
+
+## 👥 نظام الأدوار والمصادقة (Auth & Role System)
+
+### 1. الأدوار الأساسية عند التسجيل
+- **متطوع (Volunteer):** حساب فردي فوري يتيح تصفح المبادرات القريبة، تسجيل ساعات التطوع الموثقة، واختيار المهارات الشخصية.
+- **جمعية / مؤسسة (Organization):** حساب يتطلب إدخال رقم الاعتماد القانوني واسم المسؤول، ويمر بمرحلة تدقيق ومراجعة (24-48 ساعة) مع شاشة متابعة حالة الاعتماد (`WaitingApprovalScreen`).
+
+### 2. تصحيح دور المشرف الميداني (Supervisor)
+- **قاعدة حاسمة:** تم رفع دور "المشرف" بالكامل من شاشات تسجيل الدخول وإنشاء الحساب وشاشة اختيار نوع الحساب.
+- المشرف ليس نوع حساب يبدأ به المستخدم، بل هو **ترقية يطلبها المتطوع من داخل التطبيق** عبر شاشة `RequestSupervisorRoleScreen` بعد إثبات كفاءته الميدانية.
+
+---
+
+## 🎨 نظام التصميم وتجربة المستخدم (Design System & Open Space)
+
+تم تصميم واجهات المستخدم بناءً على أرقى المعايير العصرية بمفهوم **Open Space** واستلهاماً من أحدث نماذج تطبيقات الهواتف الذكية:
+
+### 1. باليت الألوان الرسمية (`src/constants/colors.ts`)
+- **خلفية كانفاس دافئة:** كريمي فاتح (`#F8F4EE`) مع كروت بيضاء ناصعة (`#FFFFFF`).
+- **الهوية البصرية:** الأزرق البحري الأساسي (`#1A5276`) والأزرق التفاعلي (`#2E86C1`).
+- **اللمسة الوطنية الفاخرة:** خط فاصل ذهبي ناعم (`#D4A017`).
+- **ألوان الأدوار الباستيل:**
+  - أخضر زمردي باستيل ناعم للمتطوع (`#ECFDF5` / `#10B981`).
+  - بنفسجي لافندر باستيل للجمعيات (`#F5EEF8` / `#8B5CF6`).
+
+### 2. الشعار الرسمي الموحد (Brand Logo)
+- تم استبدال الصور المؤقتة ودمج الشعار الرسمي للتطبيق بدقة عالية من المسار:
+  `src/assets/icons/logo.png`
+  داخل مكون الرأس `LogoHeader.tsx` بحجم متناسق (74×74) بدون إطارات دائرية قسرية وبانسيابية تامة.
+
+### 3. حل مشكلة تداخل الواجهة مع شريط الحالة العلوي (Status Bar Fix)
+- تم حل مشكلة صعود التصميم واصطدامه بالساعة والبطارية على أجهزة أندرويد:
+  - تغليف التطبيق بـ `SafeAreaProvider` من حزمة `react-native-safe-area-context` في `App.js`.
+  - استبدال `SafeAreaView` المهمل والمحدود في `react-native` بـ `SafeAreaView` المتقدم الذي يحسب الـ insets تلقائياً لكل من أندرويد و iOS و Dynamic Island:
+    ```tsx
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom', 'left', 'right']}>
+    ```
+
+---
+
+## ⚡ المكونات التفاعلية وحل المشاكل التقنية
+
+1. **القائمة المنسدلة التفاعلية (`AppDropdown.tsx`):**
+   - **المشكلة السابقة:** كانت القائمة تعلق عند اختيار مهارة جديدة (كالطبخ أو سياقة الشاحنات) أو نوع الجمعية، وتظل ثابتة على الخيار الافتراضي.
+   - **الحل الجذري:** 
+     - تزويد المكون بحالة تفاؤلية داخلية (`currentValue`) تحدث الواجهة والعلامة الزرقاء فوراً.
+     - ربط الشاشات بمتحكم النموذج `<Controller />` من `react-hook-form` مع `useWatch` لإعادة تصيير الشاشة لحظياً عند كل تغيير.
+     - تصفية قائمة بلديات الـ 58 ولاية تلقائياً عند تغيير الولاية وإعادة تصفير البلدية السابقة.
+
+2. **حقل إدخال رمز التحقق (`OTPInput.tsx`):**
+   - حقل مكون من 4 مربعات منفصلة مع انتقال تلقائي للخانة التالية عند الكتابة والمسح للوراء.
+   - تفعيل حركة الاهتزاز الفيزيائية (`Shake Animation`) باستخدام `Animated API` في حال إدخال رمز خاطئ.
+   - توفير رمز تجريبي افتراضي (`1245`) للمعاينة السريعة.
+
+3. **حقل الإدخال المتحرك (`AppInput.tsx`):**
+   - دعم التسمية العائمة المتحركة (`Floating Label`).
+   - إظهار وإخفاء كلمة المرور بزر العين.
+   - دعم كامل للاتجاه العربي (RTL) والأيقونات المتجاوبة.
+
+4. **حاجز الأخطاء المعزول (`AuthErrorBoundary.tsx`):**
+   - عزل كل شاشة في Error Boundary يمنع انهيار التطبيق بالكامل في حال وقوع خطأ استثنائي، ويتيح زر إعادة محاولة فوري.
+
+---
+
+## 🧰 التقنيات والمكتبات المستخدمة (Tech Stack)
+
+| التقنية / المكتبة | الإصدار | الاستخدام |
+| :--- | :--- | :--- |
+| **React Native** | `0.86.3` | إطار عمل تطبيقات الهواتف الذكية |
+| **Expo** | `~57.0.22` | بيئة التشغيل والأدوات المتطورة |
+| **TypeScript** | `~6.0.3` | كتابة كود صارم وخالٍ من الأخطاء النوعية |
+| **React Navigation** | `v7` | التوجيه وإدارة مسارات التنقل السلسة |
+| **Zustand** | `v5.0.3` | إدارة الحالة وخفة الأداء |
+| **AsyncStorage** | `2.2.0` | الحفظ المحلي الدائم لجلسات المستخدمين |
+| **React Hook Form** | `7.54.2` | إدارة النماذج والتحكم بالأداء العالي |
+| **Zod** | `3.24.2` | التحقق الصارم من مخططات البيانات |
+| **Axios** | `1.7.9` | التعامل مع طلبات الـ HTTP والـ Interceptors |
+| **react-native-safe-area-context** | `~5.7.0` | التوافق الآمن مع حواف الشاشات وشريط الحالة |
+| **@expo/vector-icons** | `^15.0.2` | أيقونات Ionicons المتناسقة |
+
+---
+
+## 📂 هيكل المجلدات المفصل (Directory Structure)
+
+```text
+MAHROUSA/
+├── App.js                                # المدخل الرئيسي للتطبيق مغلفاً بـ SafeAreaProvider
+├── tsconfig.json                         # إعدادات TypeScript الصارمة ومسارات الاختصار
+├── package.json                          # الاعتماديات وحزم التشغيل
+├── src/
+│   ├── types/
+│   │   └── auth.types.ts                 # واجهات وأنواع المصادقة والملاحة
+│   ├── constants/
+│   │   ├── colors.ts                     # نظام الألوان (Design Tokens)
+│   │   ├── typography.ts                 # مقاييس ونسب الخطوط
+│   │   └── algeria.ts                    # بيانات الـ 58 ولاية وبلدياتها والمهارات
+│   ├── validation/
+│   │   └── authSchemas.ts                # مخططات Zod الصارمة للتحقق
+│   ├── store/
+│   │   └── authStore.ts                  # مخزن Zustand للمستخدم والتوكن
+│   ├── services/
+│   │   └── authService.ts                # عميل Axios وواجهات الـ API
+│   ├── components/
+│   │   └── auth/
+│   │       ├── AppInput.tsx              # حقل الإدخال المتحرك
+│   │       ├── AppButton.tsx             # الزر التفاعلي بأنواعه الثلاثة
+│   │       ├── AppDropdown.tsx           # القائمة المنسدلة التفاعلية مع البحث
+│   │       ├── OTPInput.tsx              # مربعات إدخال الـ OTP مع الاهتزاز
+│   │       ├── LogoHeader.tsx            # رأس الصفحة مع شعار محروسة
+│   │       └── AuthErrorBoundary.tsx    # معالج الأخطاء الاستثنائية
+│   ├── hooks/
+│   │   └── auth/
+│   │       ├── useVolunteerSignUp.ts     # خطاف تسجيل المتطوع
+│   │       ├── useVolunteerLogin.ts      # خطاف دخول المتطوع
+│   │       ├── useOrganizationSignUp.ts  # خطاف تسجيل الجمعية
+│   │       └── useOrganizationLogin.ts   # خطاف دخول الجمعية والعداد التنازلي
+│   ├── screens/
+│   │   └── auth/
+│   │       ├── RoleSelectionScreen.tsx   # واجهة اختيار نوع الحساب العصرية
+│   │       ├── VolunteerSignUpScreen.tsx # واجهة إنشاء حساب متطوع
+│   │       ├── VolunteerLoginScreen.tsx  # واجهة تسجيل دخول المتطوع
+│   │       ├── OrganizationSignUpScreen.tsx # واجهة تسجيل الجمعية
+│   │       ├── OrganizationLoginScreen.tsx  # واجهة دخول الجمعية عبر OTP
+│   │       └── WaitingApprovalScreen.tsx # واجهة متابعة تدقيق الاعتماد
+│   ├── navigation/
+│   │   ├── AuthNavigator.tsx             # مسار شاشات المصادقة
+│   │   └── RootNavigator.tsx             # الموجه الرئيسي التفاعلي مع حالة الدخول
+│   └── assets/
+│       └── icons/
+│           ├── logo.png                  # الشعار الرسمي المعتمد للتطبيق
+│           └── google.png                # أيقونة تسجيل الدخول السريع
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+---
 
-### Other setup steps
+## 🚀 دليل التثبيت والتشغيل (Getting Started)
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+### 1. تثبيت الحزم والاعتماديات
+```bash
+npm install
+```
 
-## Learn more
+### 2. فحص الأنواع (TypeScript Validation)
+للتأكد من عدم وجود أي خطأ نوعي في الكود:
+```bash
+npx tsc --noEmit
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+### 3. تشغيل خادم التطوير (Metro Dev Server)
+```bash
+npx expo start --clean
+```
+- اضغط `a` لفتح التطبيق على محاكي **Android**.
+- اضغط `i` لفتح التطبيق على محاكي **iOS**.
+- امسح رمز الـ QR باستخدام تطبيق **Expo Go** على هاتفك الفعلي.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### 4. اختبار تجميع الحزم (Production Export Check)
+```bash
+npx expo export --no-minify
+```
 
-## Join the community
+---
 
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+**محروسة | MAHROUSA** • صُنع بكل فخر لخدمة العمل الإنساني والتضامني في الجزائر 🇩🇿

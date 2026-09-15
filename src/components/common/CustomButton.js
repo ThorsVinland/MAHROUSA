@@ -1,13 +1,18 @@
+// ============================================================
+// src/components/common/CustomButton.js
+// زر قياسي قابل لإعادة الاستخدام يستهلك رموز نظام التصميم
+// ============================================================
+
 import React from 'react';
 import { 
   TouchableOpacity, 
   Text, 
   StyleSheet, 
-  ActivityIndicator,
-  useColorScheme
+  ActivityIndicator 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import theme from '../../theme/colors';
+import useTheme from '../../hooks/useTheme';
+import { radius, shadows, spacing, typography } from '../../theme';
 
 export default function CustomButton({
   title,
@@ -18,37 +23,34 @@ export default function CustomButton({
   disabled = false,
   loading = false,
   iconName,
-  themeMode, // Prop to override system theme
+  themeMode, // خيار تجاوز الثيم الاختياري
   ...props
 }) {
-  const systemColorScheme = useColorScheme();
-  const currentMode = themeMode || systemColorScheme;
-  const isDarkMode = currentMode === 'dark';
-  const colors = isDarkMode ? theme.dark : theme.light;
+  const themeContext = useTheme();
+  const colors = themeMode 
+    ? (themeMode === 'dark' ? themeContext.darkColors || themeContext.colors : themeContext.lightColors || themeContext.colors)
+    : themeContext.colors;
 
-  // تحديد الألوان بناءً على نوع الزر
+  // تحديد الألوان بناءً على نوع الزر ورموز الثيم
   let bgColor;
   let textColor;
   let borderColor;
 
-  const fallbackPrimary = '#1A5276';
-  const fallbackSecondary = '#2E86C1';
-
   switch (type) {
     case 'secondary':
-      bgColor = colors.mainBlue || fallbackSecondary;
-      textColor = '#FFFFFF';
+      bgColor = colors.primary;
+      textColor = colors.textLight || '#FFFFFF';
       borderColor = 'transparent';
       break;
     case 'outline':
       bgColor = 'transparent';
-      textColor = colors.primaryDarkBlue || fallbackPrimary;
-      borderColor = colors.primaryDarkBlue || fallbackPrimary;
+      textColor = colors.primaryDark;
+      borderColor = colors.primaryDark;
       break;
     case 'primary':
     default:
-      bgColor = colors.primaryDarkBlue || fallbackPrimary;
-      textColor = '#FFFFFF';
+      bgColor = colors.primaryDark;
+      textColor = colors.textLight || '#FFFFFF';
       borderColor = 'transparent';
       break;
   }
@@ -94,24 +96,20 @@ export default function CustomButton({
 const styles = StyleSheet.create({
   container: {
     height: 52,
-    borderRadius: 10,
-    flexDirection: 'row-reverse', // للغة العربية
+    borderRadius: radius.md,
+    flexDirection: 'row-reverse', // متوافق مع الاتجاه العربي
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.lg,
     width: '100%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3, // For Android
+    ...shadows.md,
   },
   text: {
-    fontSize: 16,
-    fontWeight: '700',
-    fontFamily: 'System',
+    fontSize: typography.button.fontSize,
+    fontWeight: typography.button.fontWeight,
+    fontFamily: typography?.fontFamily?.bold || undefined,
   },
   iconStyle: {
-    marginLeft: 8,
+    marginLeft: spacing.sm,
   },
 });

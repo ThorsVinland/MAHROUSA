@@ -1,14 +1,19 @@
+// ============================================================
+// src/components/common/CustomTextInput.js
+// حقل إدخال قياسي يستهلك رموز نظام التصميم ويدعم RTL
+// ============================================================
+
 import React, { useState } from 'react';
 import { 
   View, 
   TextInput, 
   StyleSheet, 
   TouchableOpacity, 
-  Text,
-  useColorScheme 
+  Text 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import theme from '../../theme/colors';
+import useTheme from '../../hooks/useTheme';
+import { radius, spacing, typography } from '../../theme';
 
 export default function CustomTextInput({
   label,
@@ -16,14 +21,13 @@ export default function CustomTextInput({
   iconName,
   error,
   style,
-  themeMode, // Prop to override system theme
+  themeMode, // خيار تجاوز الثيم الاختياري
   ...props
 }) {
-  const systemColorScheme = useColorScheme();
-  // إذا تم تمرير themeMode استخدمه، وإلا استخدم إعداد النظام
-  const currentMode = themeMode || systemColorScheme;
-  const isDarkMode = currentMode === 'dark';
-  const colors = isDarkMode ? theme.dark : theme.light;
+  const themeContext = useTheme();
+  const colors = themeMode 
+    ? (themeMode === 'dark' ? themeContext.darkColors || themeContext.colors : themeContext.lightColors || themeContext.colors)
+    : themeContext.colors;
 
   const [isSecure, setIsSecure] = useState(isPassword);
   const [isFocused, setIsFocused] = useState(false);
@@ -32,11 +36,10 @@ export default function CustomTextInput({
     setIsSecure(!isSecure);
   };
 
-  // تأمين ألوان افتراضية لتجنب الأخطاء في حال كان الوضع الداكن فارغاً
-  const textColor = colors.primaryText || (isDarkMode ? '#fff' : '#2C3E50');
-  const bgColor = colors.cardBackground || (isDarkMode ? '#1e1e1e' : '#FDFEFE');
-  const borderColor = error ? (colors.urgentRed || '#E74C3C') : (isFocused ? (colors.mainBlue || '#2E86C1') : (isDarkMode ? '#333' : '#E0E0E0'));
-  const placeholderColor = isDarkMode ? '#888' : '#A6ACAF';
+  const textColor = colors.text;
+  const bgColor = colors.surface;
+  const borderColor = error ? colors.error : (isFocused ? colors.primary : colors.border);
+  const placeholderColor = colors.textMuted;
 
   return (
     <View style={[styles.container, style]}>
@@ -46,15 +49,15 @@ export default function CustomTextInput({
         styles.inputContainer, 
         { 
           backgroundColor: bgColor,
-          borderColor: borderColor
+          borderColor: borderColor,
         }
       ]}>
-        {/* أيقونة اختيارية تظهر في الجانب (حسب اتجاه النص ستكون يسار أو يمين) */}
+        {/* أيقونة جانبية اختيارية */}
         {iconName && (
           <Ionicons 
             name={iconName} 
             size={20} 
-            color={isFocused ? (colors.mainBlue || '#2E86C1') : placeholderColor} 
+            color={isFocused ? colors.primary : placeholderColor} 
             style={styles.iconStyle} 
           />
         )}
@@ -68,7 +71,7 @@ export default function CustomTextInput({
           {...props}
         />
         
-        {/* أيقونة العين تظهر فقط إذا كان الحقل مخصصاً لكلمة المرور */}
+        {/* أيقونة إظهار / إخفاء كلمة المرور */}
         {isPassword && (
           <TouchableOpacity onPress={toggleSecureEntry} style={styles.eyeIcon} activeOpacity={0.7}>
             <Ionicons 
@@ -80,47 +83,47 @@ export default function CustomTextInput({
         )}
       </View>
       
-      {error && <Text style={[styles.errorText, { color: colors.urgentRed || '#E74C3C' }]}>{error}</Text>}
+      {error && <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 16,
+    marginBottom: spacing.md,
     width: '100%',
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
-    textAlign: 'right', // متوافق مع اللغة العربية
+    fontSize: typography.label.fontSize,
+    fontWeight: typography.label.fontWeight,
+    marginBottom: spacing.sm,
+    textAlign: 'right', // متوافق مع الاتجاه العربي
   },
   inputContainer: {
-    flexDirection: 'row-reverse', // يجعل الأيقونات والنص تتماشى مع العربية من اليمين لليسار
+    flexDirection: 'row-reverse', // أيقونة اليمين والنص إلى اليسار
     alignItems: 'center',
     borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 12,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.sm + 4,
     height: 50,
   },
   input: {
     flex: 1,
-    fontSize: 16,
-    textAlign: 'right', // الكتابة تبدأ من اليمين
-    paddingVertical: 8,
-    fontFamily: 'System',
+    fontSize: typography.body.fontSize,
+    textAlign: 'right',
+    paddingVertical: spacing.sm,
+    fontFamily: typography?.fontFamily?.regular || undefined,
   },
   iconStyle: {
-    marginLeft: 10,
+    marginLeft: spacing.sm + 2,
   },
   eyeIcon: {
-    marginRight: 10,
-    padding: 4,
+    marginRight: spacing.sm + 2,
+    padding: spacing.xs,
   },
   errorText: {
-    fontSize: 12,
-    marginTop: 4,
+    fontSize: typography.caption.fontSize,
+    marginTop: spacing.xs,
     textAlign: 'right',
   },
 });
