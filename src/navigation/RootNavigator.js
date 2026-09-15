@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { BackHandler } from 'react-native';
+import { BackHandler, View, ActivityIndicator } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import SplashScreen from '../screens/auth/SplashScreen';
 import SelectRoleScreen from '../screens/auth/SelectRoleScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
@@ -8,10 +10,27 @@ import VolunteerMainScreen from '../screens/main/VolunteerMainScreen';
 import OrganizationMainScreen from '../screens/main/OrganizationMainScreen';
 
 export default function RootNavigator() { 
-  const [currentScreen, setCurrentScreen] = useState('SelectRole'); // SelectRole, Register, Login, VerifyOTP, VolunteerMain, OrganizationMain
+  const [currentScreen, setCurrentScreen] = useState('Loading'); // Loading, Splash, SelectRole, Register, Login, VerifyOTP, VolunteerMain, OrganizationMain
   const [selectedRole, setSelectedRole] = useState(null); // 'volunteer' or 'organization'
   const [otpPhoneNumber, setOtpPhoneNumber] = useState('');
   const [flowData, setFlowData] = useState(null);
+
+  useEffect(() => {
+    const checkFirstLaunch = async () => {
+      try {
+        const hasLaunched = await AsyncStorage.getItem('hasLaunchedBefore');
+        if (hasLaunched === 'true') {
+          setCurrentScreen('SelectRole'); // تخطي شاشة الترحيب إذا دخل من قبل
+        } else {
+          setCurrentScreen('Splash');
+        }
+      } catch (error) {
+        console.error('Error checking first launch:', error);
+        setCurrentScreen('Splash');
+      }
+    };
+    checkFirstLaunch();
+  }, []);
 
   // دعم زر الرجوع الخاص بالهاتف (أندرويد)
   useEffect(() => {
@@ -23,11 +42,15 @@ export default function RootNavigator() {
         setCurrentScreen('Login'); // العودة للوجين مبدئيا
         return true;
       }
-      if (currentScreen !== 'SelectRole') {
+      if (currentScreen === 'SelectRole') {
+        setCurrentScreen('Splash');
+        return true;
+      }
+      if (currentScreen !== 'Splash') {
         setCurrentScreen('SelectRole');
         return true; // منع الخروج من التطبيق
       }
-      return false; // السماح بالخروج إذا كنا في الصفحة الأولى
+      return false; // السماح بالخروج إذا كنا في شاشة الترحيب
     };
 
     const backHandler = BackHandler.addEventListener(
@@ -48,11 +71,32 @@ export default function RootNavigator() {
   };
 
   const handleLogout = () => {
-    setCurrentScreen('SelectRole');
+    setCurrentScreen('Splash');
     setSelectedRole(null);
     setOtpPhoneNumber('');
     setFlowData(null);
   };
+
+  if (currentScreen === 'Loading') {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' }}>
+        <ActivityIndicator size="large" color="#1A5276" />
+      </View>
+    );
+  }
+
+  if (currentScreen === 'Splash') {
+    return (
+      <SplashScreen 
+        onFinish={async () => {
+          try {
+            await AsyncStorage.setItem('hasLaunchedBefore', 'true');
+          } catch (e) {}
+          setCurrentScreen('SelectRole');
+        }} 
+      />
+    );
+  }
 
   if (currentScreen === 'VolunteerMain') {
     return <VolunteerMainScreen onLogout={handleLogout} />;
