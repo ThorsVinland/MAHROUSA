@@ -1,5 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAnalytics, isSupported } from "firebase/analytics";
+import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
@@ -21,4 +22,6 @@ isSupported().then((supported) => {
   }
 });
 
-export { app, analytics };
+const db = getFirestore(app);
+
+export { app, analytics, db };

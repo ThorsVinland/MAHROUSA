@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   View, 
   Text, 
@@ -11,7 +11,9 @@ import {
   TouchableOpacity,
   StatusBar,
   useColorScheme,
-  ScrollView
+  ScrollView,
+  Alert,
+  ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import theme from '../../theme/colors';
@@ -19,21 +21,45 @@ import { useTheme } from '../../context/ThemeContext';
 import CustomTextInput from '../../components/common/CustomTextInput';
 import CustomPhoneInput from '../../components/common/CustomPhoneInput';
 import CustomButton from '../../components/common/CustomButton';
+import { checkUserExists } from '../../services/authService';
+import { normalizeDigits } from '../../utils/formatters';
 
-export default function RegisterScreen({ role, onBack, onGoToLogin }) {
+export default function RegisterScreen({ role, onBack, onGoToLogin, onGoToVerifyOtp }) {
   const { themeMode, toggleTheme, isDarkMode, colors } = useTheme();
 
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleRegister = () => {
-    const finalNumberToSend = '+213' + phoneNumber;
+  const handleRegister = async () => {
+    if (!fullName.trim()) {
+      Alert.alert('تنبيه', 'يرجى إدخال اسمك الكامل أو اسم الجمعية.');
+      return;
+    }
+
+    const cleanPhone = normalizeDigits(phoneNumber).replace(/^0+/, '');
+    const finalNumberToSend = '+213' + cleanPhone;
     
-    console.log("البيانات المرسلة للتسجيل:");
-    console.log("الاسم:", fullName);
-    console.log("الدور:", role);
-    console.log("الرقم المنسق:", finalNumberToSend);
-    // TODO: Send to Database
+    try {
+      setIsLoading(true);
+      // التحقق من قاعدة البيانات
+      const { exists } = await checkUserExists(finalNumberToSend);
+      
+      if (exists) {
+        setIsLoading(false);
+        Alert.alert('خطأ', 'هذا الرقم مسجل مسبقاً، يرجى تسجيل الدخول.');
+        return;
+      }
+
+      setIsLoading(false);
+      // ننتقل لصفحة التحقق ونمرر الرقم المنسق
+      if (onGoToVerifyOtp) {
+        onGoToVerifyOtp(finalNumberToSend, { fullName, role, type: 'register' });
+      }
+    } catch (error) {
+      setIsLoading(false);
+      Alert.alert('خطأ', 'حدث خطأ أثناء الاتصال بالخادم، يرجى المحاولة لاحقاً.');
+    }
   };
 
   const pageBgColor = colors.pageBackground || (isDarkMode ? '#121212' : theme.light.pageBackground);
@@ -116,7 +142,7 @@ export default function RegisterScreen({ role, onBack, onGoToLogin }) {
               iconName="person-add-outline"
               style={styles.registerButton}
               themeMode={themeMode}
-              disabled={phoneNumber.length !== 9}
+              disabled={phoneNumber.length !== 9 || isLoading}
             />
 
 

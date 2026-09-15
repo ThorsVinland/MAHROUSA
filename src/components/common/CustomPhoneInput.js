@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import theme from '../../theme/colors';
+import { normalizeDigits } from '../../utils/formatters';
 
 export default function CustomPhoneInput({
   label,
@@ -34,11 +35,11 @@ export default function CustomPhoneInput({
   const borderColor = error ? (colors.urgentRed || '#E74C3C') : (isFocused ? (colors.mainBlue || '#2E86C1') : (isDarkMode ? '#333' : '#E0E0E0'));
   const placeholderColor = isDarkMode ? '#888' : '#A6ACAF';
 
-  // تنظيف النص ليبقى أرقام فقط، وبحد أقصى 9 أرقام
-  const digits = value.replace(/\D/g, '').substring(0, 9);
+  // تنظيف النص ليبقى أرقام فقط، وبحد أقصى 9 أرقام مع دعم الأرقام العربية
+  const digits = normalizeDigits(value).substring(0, 9);
 
   const handleTextChange = (text) => {
-    let formatted = text.replace(/\D/g, '');
+    let formatted = normalizeDigits(text);
     // إذا كتب المستخدم 0 في البداية، نحذفه فوراً لأن رمز البلد موجود
     if (formatted.startsWith('0')) {
       formatted = formatted.substring(1);

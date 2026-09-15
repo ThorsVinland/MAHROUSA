@@ -1,16 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
-  TouchableWithoutFeedback, 
-  Keyboard, 
-  SafeAreaView, 
-  KeyboardAvoidingView, 
-  Platform,
+  SafeAreaView,
   TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Alert,
+  ActivityIndicator,
   StatusBar,
-  useColorScheme,
   ScrollView
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,17 +19,39 @@ import theme from '../../theme/colors';
 import { useTheme } from '../../context/ThemeContext';
 import CustomPhoneInput from '../../components/common/CustomPhoneInput';
 import CustomButton from '../../components/common/CustomButton';
+import { checkUserExists } from '../../services/authService';
+import { normalizeDigits } from '../../utils/formatters';
 
-export default function LoginScreen({ onGoToRegister, onBack }) {
+export default function LoginScreen({ onGoToRegister, onBack, onGoToVerifyOtp }) {
   const { themeMode, toggleTheme, isDarkMode, colors } = useTheme();
   
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = () => {
-    const finalNumberToSend = '+213' + phoneNumber;
+  const handleLogin = async () => {
+    const cleanPhone = normalizeDigits(phoneNumber).replace(/^0+/, '');
+    const finalNumberToSend = '+213' + cleanPhone;
     
-    console.log("رقم الهاتف الذي سيتم إرساله:", finalNumberToSend);
-    // TODO: Send to Database
+    try {
+      setIsLoading(true);
+      // التحقق من قاعدة البيانات
+      const { exists, role } = await checkUserExists(finalNumberToSend);
+      
+      if (!exists) {
+        setIsLoading(false);
+        Alert.alert('خطأ', 'هذا الرقم غير مسجل، يرجى إنشاء حساب جديد.');
+        return;
+      }
+
+      setIsLoading(false);
+      // ننتقل لصفحة التحقق ونمرر الرقم المنسق مع الدور المحفوظ
+      if (onGoToVerifyOtp) {
+        onGoToVerifyOtp(finalNumberToSend, { role, type: 'login' });
+      }
+    } catch (error) {
+      setIsLoading(false);
+      Alert.alert('خطأ', 'حدث خطأ أثناء الاتصال بالخادم، يرجى المحاولة لاحقاً.');
+    }
   };
 
   // تأمين ألوان افتراضية للوضع الداكن إذا كانت فارغة في ملف theme
@@ -99,7 +122,7 @@ export default function LoginScreen({ onGoToRegister, onBack }) {
               iconName="log-in-outline"
               style={styles.loginButton}
               themeMode={themeMode}
-              disabled={phoneNumber.length !== 9}
+              disabled={phoneNumber.length !== 9 || isLoading}
             />
           </View>
 
