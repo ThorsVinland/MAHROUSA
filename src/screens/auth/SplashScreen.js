@@ -282,6 +282,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     textAlign: 'center',
     fontWeight: '500',
+    marginBottom: 15,
   },
   bottomBarContainer: {
     position: 'absolute',

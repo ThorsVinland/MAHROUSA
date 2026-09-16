@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
+import {
+  View,
+  Text,
+  StyleSheet,
   TouchableOpacity,
   StatusBar,
   useColorScheme,
@@ -28,15 +28,15 @@ export default function SelectRoleScreen({ onSelect, onGoToLogin }) {
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: pageBgColor }]}>
-      <StatusBar 
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'} 
+      <StatusBar
+        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
         backgroundColor={pageBgColor}
       />
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        
+
         {/* Theme Toggle */}
         <View style={styles.topActionsContainer}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.themeToggleButton, { backgroundColor: cardBgColor, shadowColor: iconColor }]}
             onPress={toggleTheme}
           >
@@ -45,25 +45,29 @@ export default function SelectRoleScreen({ onSelect, onGoToLogin }) {
         </View>
 
         {/* Header */}
-        <View style={styles.headerContainer}>
-          <View style={[styles.logoPlaceholder, { backgroundColor: cardBgColor, shadowColor: iconColor }]}>
-            <Ionicons name="people" size={60} color={iconColor} />
-          </View>
+        <View style={[styles.headerContainer, { marginTop: -20 }]}>
+          <Image
+            source={require('../../assets/icons/logo.png')}
+            style={styles.logoImage}
+          />
           <Text style={[styles.headerTitle, { color: primaryTextColor }]}>أهلاً بك في محروسة</Text>
           <Text style={[styles.headerSubtitle, { color: subtitleColor }]}>الرجاء تحديد نوع الحساب</Text>
         </View>
 
         {/* Role Selection Cards */}
         <View style={styles.rolesContainer}>
-          
+
           {/* Volunteer Card */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.roleCard, { backgroundColor: cardBgColor, borderColor: volunteerColor }]}
             onPress={() => onSelect && onSelect('volunteer')}
             activeOpacity={0.8}
           >
             <View style={[styles.iconContainer, { backgroundColor: volunteerColor + '20' }]}>
-              <Ionicons name="person" size={32} color={volunteerColor} />
+              <Image
+                source={require('../../assets/images/volunteer_card.jpg')}
+                style={{ width: 60, height: 60, resizeMode: 'contain' }}
+              />
             </View>
             <View style={styles.roleTextContainer}>
               <Text style={[styles.roleTitle, { color: primaryTextColor }]}>متطوع عادي</Text>
@@ -73,13 +77,16 @@ export default function SelectRoleScreen({ onSelect, onGoToLogin }) {
           </TouchableOpacity>
 
           {/* Organization Card */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.roleCard, { backgroundColor: cardBgColor, borderColor: orgColor }]}
             onPress={() => onSelect && onSelect('organization')}
             activeOpacity={0.8}
           >
             <View style={[styles.iconContainer, { backgroundColor: orgColor + '20' }]}>
-              <Ionicons name="business" size={32} color={orgColor} />
+              <Image
+                source={require('../../assets/images/org_card.jpg')}
+                style={{ width: 60, height: 60, resizeMode: 'contain' }}
+              />
             </View>
             <View style={styles.roleTextContainer}>
               <Text style={[styles.roleTitle, { color: primaryTextColor }]}>جمعية / مؤسسة</Text>
@@ -125,23 +132,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 40,
   },
-  logoPlaceholder: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
+  logoImage: {
+    width: 140,
+    height: 140,
+    resizeMode: 'contain',
     marginBottom: 16,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 8,
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: '900',
     marginBottom: 8,
-    fontFamily: 'System', 
+    fontFamily: 'System',
   },
   headerSubtitle: {
     fontSize: 16,
