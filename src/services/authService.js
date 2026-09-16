@@ -102,25 +102,37 @@ export const checkUserExists = async (phoneNumber) => {
 /**
  * يقوم بإنشاء حساب جديد في مجموعة users والمجموعة الخاصة بالدور في Firestore.
  */
-export const registerNewUser = async (phoneNumber, fullName, role) => {
+export const registerNewUser = async (phoneNumber, fullName, role, additionalData = {}) => {
   try {
-    // 1. إنشاء المستند في مجموعة users
-    const userRef = doc(db, 'users', phoneNumber);
-    await setDoc(userRef, {
-      role: role,
-      createdAt: serverTimestamp()
-    });
+    if (role === 'volunteer') {
+      // 1. إنشاء المستند في مجموعة users
+      const userRef = doc(db, 'users', phoneNumber);
+      await setDoc(userRef, {
+        role: role,
+        createdAt: serverTimestamp()
+      });
 
-    // 2. إنشاء المستند في المجموعة الخاصة بالدور (volunteers أو organizations)
-    const collectionName = role === 'volunteer' ? 'volunteers' : 'organizations';
-    const roleRef = doc(db, collectionName, phoneNumber);
-    
-    await setDoc(roleRef, {
-      fullName: fullName,
-      phoneNumber: phoneNumber,
-      role: role,
-      createdAt: serverTimestamp()
-    });
+      // 2. إنشاء المستند في مجموعة volunteers
+      const roleRef = doc(db, 'volunteers', phoneNumber);
+      await setDoc(roleRef, {
+        fullName: fullName,
+        phoneNumber: phoneNumber,
+        role: role,
+        ...additionalData,
+        createdAt: serverTimestamp()
+      });
+    } else if (role === 'organization') {
+      // الجمعيات تسجل في pending_organizations للمراجعة ولا تضاف إلى users حالياً لمنع الدخول
+      const pendingRef = doc(db, 'pending_organizations', phoneNumber);
+      await setDoc(pendingRef, {
+        fullName: fullName, // اسم الجمعية
+        phoneNumber: phoneNumber,
+        role: role,
+        status: 'pending',
+        ...additionalData,
+        createdAt: serverTimestamp()
+      });
+    }
 
     return true;
   } catch (error) {

@@ -9,8 +9,7 @@ import {
   Platform,
   TouchableOpacity,
   StatusBar,
-  TextInput,
-  Alert
+  TextInput
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,9 +18,11 @@ import { useTheme } from '../../context/ThemeContext';
 import CustomButton from '../../components/common/CustomButton';
 import { registerNewUser, verifyOtpCode } from '../../services/authService';
 import { normalizeDigits, formatPhoneNumberDisplay } from '../../utils/formatters';
+import { useAlert } from '../../context/AlertContext';
 
 export default function VerifyOtpScreen({ phoneNumber, flowData, onVerifySuccess, onBack }) {
   const { themeMode, isDarkMode, colors } = useTheme();
+  const { showAlert } = useAlert();
   const [otp, setOtp] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -44,7 +45,7 @@ export default function VerifyOtpScreen({ phoneNumber, flowData, onVerifySuccess
     const cleanOtp = normalizeDigits(otp).trim();
 
     if (cleanOtp.length !== OTP_LENGTH) {
-      Alert.alert('تنبيه', 'يرجى إدخال الرمز كاملاً (6 أرقام).');
+      showAlert('تنبيه', 'يرجى إدخال الرمز كاملاً (6 أرقام).');
       return;
     }
 
@@ -57,20 +58,30 @@ export default function VerifyOtpScreen({ phoneNumber, flowData, onVerifySuccess
       // 2. بعد نجاح التحقق:
       if (flowData?.type === 'register') {
         // حفظ بيانات المستخدم في Firestore
-        await registerNewUser(phoneNumber, flowData.fullName, flowData.role);
+        const { fullName, role, type, ...additionalData } = flowData;
+        await registerNewUser(phoneNumber, fullName, role, additionalData);
       }
       
       setIsLoading(false);
-      onVerifySuccess(flowData?.role);
+
+      if (flowData?.role === 'organization') {
+        showAlert(
+          'تم تسجيل طلبك بنجاح', 
+          'ستتم معالجة الطلب في غضون 48 ساعة وسنتصل بك.',
+          [{ text: 'حسناً', onPress: onBack }]
+        );
+      } else {
+        onVerifySuccess(flowData?.role);
+      }
 
     } catch (error) {
       setIsLoading(false);
       console.error('OTP verification error:', error);
       
       if (error?.message === 'INVALID_CODE') {
-        Alert.alert('رمز خاطئ', 'رمز التحقق غير متطابق مع الرمز المسجل في Firebase Auth. يرجى المحاولة مرة أخرى.');
+        showAlert('رمز خاطئ', 'رمز التحقق غير متطابق مع الرمز المسجل في Firebase Auth. يرجى المحاولة مرة أخرى.');
       } else {
-        Alert.alert(
+        showAlert(
           'خطأ في الحفظ', 
           'حدث خطأ أثناء حفظ البيانات في Firestore، يرجى التأكد من اتصالك بالإنترنت.'
         );

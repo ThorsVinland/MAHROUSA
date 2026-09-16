@@ -8,7 +8,6 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
-  Alert,
   StatusBar,
   ScrollView
 } from 'react-native';
@@ -20,9 +19,11 @@ import CustomPhoneInput from '../../components/common/CustomPhoneInput';
 import CustomButton from '../../components/common/CustomButton';
 import { checkUserExists } from '../../services/authService';
 import { normalizeDigits } from '../../utils/formatters';
+import { useAlert } from '../../context/AlertContext';
 
 export default function LoginScreen({ onGoToRegister, onBack, onGoToVerifyOtp }) {
   const { themeMode, toggleTheme, isDarkMode, colors } = useTheme();
+  const { showAlert } = useAlert();
   
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -39,7 +40,7 @@ export default function LoginScreen({ onGoToRegister, onBack, onGoToVerifyOtp })
       
       if (!exists) {
         setIsLoading(false);
-        Alert.alert('خطأ', 'هذا الرقم غير مسجل، يرجى إنشاء حساب جديد أولاً.');
+        showAlert('خطأ', 'هذا الرقم غير مسجل، يرجى إنشاء حساب جديد أولاً.');
         return;
       }
 
@@ -51,7 +52,7 @@ export default function LoginScreen({ onGoToRegister, onBack, onGoToVerifyOtp })
     } catch (error) {
       setIsLoading(false);
       console.error('Login error:', error);
-      Alert.alert('خطأ', 'حدث خطأ أثناء الاتصال بقاعدة البيانات، يرجى المحاولة لاحقاً.');
+      showAlert('خطأ', 'حدث خطأ أثناء الاتصال بقاعدة البيانات، يرجى المحاولة لاحقاً.');
     }
   };
 
