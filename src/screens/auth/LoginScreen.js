@@ -52,7 +52,11 @@ export default function LoginScreen({ onGoToRegister, onBack, onGoToVerifyOtp })
     } catch (error) {
       setIsLoading(false);
       console.error('Login error:', error);
-      showAlert('خطأ', 'حدث خطأ أثناء الاتصال بقاعدة البيانات، يرجى المحاولة لاحقاً.');
+      if (error?.message === 'ACCOUNT_PENDING') {
+        showAlert('حساب قيد المراجعة', 'حساب الجمعية الخاص بك لا يزال قيد المراجعة ولم يتم تفعيله بعد.');
+      } else {
+        showAlert('خطأ', 'حدث خطأ أثناء الاتصال بقاعدة البيانات، يرجى المحاولة لاحقاً.');
+      }
     }
   };
 
@@ -68,11 +72,10 @@ export default function LoginScreen({ onGoToRegister, onBack, onGoToVerifyOtp })
         barStyle={isDarkMode ? 'light-content' : 'dark-content'} 
         backgroundColor={pageBgColor}
       />
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-        <KeyboardAvoidingView 
-          style={{ flex: 1 }} 
-          behavior={Platform.OS === 'ios' ? 'padding' : null}
-        >
+      <KeyboardAvoidingView 
+        style={{ flex: 1 }} 
+        behavior={Platform.OS === 'ios' ? 'padding' : null}
+      >
         <ScrollView 
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
@@ -136,7 +139,6 @@ export default function LoginScreen({ onGoToRegister, onBack, onGoToVerifyOtp })
 
         </ScrollView>
       </KeyboardAvoidingView>
-      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 }

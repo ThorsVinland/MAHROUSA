@@ -92,6 +92,17 @@ export const checkUserExists = async (phoneNumber) => {
       };
     }
     
+    // Check pending_organizations for approved accounts
+    const pendingRef = doc(db, 'pending_organizations', phoneNumber);
+    const pendingSnap = await getDoc(pendingRef);
+    if (pendingSnap.exists()) {
+      if (pendingSnap.data().isApproved === true) {
+        return { exists: true, role: pendingSnap.data().role };
+      } else {
+        throw new Error('ACCOUNT_PENDING');
+      }
+    }
+    
     return { exists: false, role: null };
   } catch (error) {
     console.error('Error checking user existence:', error);
@@ -129,6 +140,7 @@ export const registerNewUser = async (phoneNumber, fullName, role, additionalDat
         phoneNumber: phoneNumber,
         role: role,
         status: 'pending',
+        isApproved: false,
         ...additionalData,
         createdAt: serverTimestamp()
       });

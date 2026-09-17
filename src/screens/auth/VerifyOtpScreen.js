@@ -64,7 +64,7 @@ export default function VerifyOtpScreen({ phoneNumber, flowData, onVerifySuccess
       
       setIsLoading(false);
 
-      if (flowData?.role === 'organization') {
+      if (flowData?.type === 'register' && flowData?.role === 'organization') {
         showAlert(
           'تم تسجيل طلبك بنجاح', 
           'ستتم معالجة الطلب في غضون 48 ساعة وسنتصل بك.',
@@ -258,6 +258,7 @@ const styles = StyleSheet.create({
   },
   slotsContainer: {
     flexDirection: 'row',
+    direction: 'ltr',
     justifyContent: 'space-between',
     alignItems: 'center',
     width: '100%',
