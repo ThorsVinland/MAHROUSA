@@ -13,6 +13,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { db } from '../../config/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { useAuthStore } from '../../store/authStore';
 import theme from '../../theme/colors';
 import { useTheme } from '../../context/ThemeContext';
 import CustomButton from '../../components/common/CustomButton';
@@ -60,6 +64,46 @@ export default function VerifyOtpScreen({ phoneNumber, flowData, onVerifySuccess
         // حفظ بيانات المستخدم في Firestore
         const { fullName, role, type, ...additionalData } = flowData;
         await registerNewUser(phoneNumber, fullName, role, additionalData);
+
+        const profile = {
+          id: phoneNumber,
+          name: fullName || 'متطوع محروسة',
+          phone: phoneNumber,
+          role: role || 'volunteer',
+          wilaya: additionalData.wilaya ? String(additionalData.wilaya) : '31',
+          commune: additionalData.commune || '',
+        };
+        try {
+          await AsyncStorage.setItem('current_user', JSON.stringify(profile));
+          useAuthStore.getState().setUser(profile);
+        } catch (e) {
+          console.warn('Storage save notice:', e);
+        }
+      } else {
+        // تسجيل الدخول: جلب بيانات المتطوع إن وجدت
+        let profile = {
+          id: phoneNumber,
+          name: 'متطوع محروسة',
+          phone: phoneNumber,
+          role: flowData?.role || 'volunteer',
+          wilaya: '31',
+        };
+        try {
+          const userSnap = await getDoc(doc(db, 'volunteers', phoneNumber));
+          if (userSnap.exists()) {
+            const data = userSnap.data();
+            profile.name = data.fullName || profile.name;
+            profile.wilaya = data.wilaya ? String(data.wilaya) : profile.wilaya;
+          }
+        } catch (e) {
+          console.log('Error fetching volunteer data:', e);
+        }
+        try {
+          await AsyncStorage.setItem('current_user', JSON.stringify(profile));
+          useAuthStore.getState().setUser(profile);
+        } catch (e) {
+          console.warn('Storage save notice:', e);
+        }
       }
       
       setIsLoading(false);

@@ -1,3 +1,2 @@
-import React from 'react';
-// TODO: Setup Auth Navigator
-export default function AuthNavigator() { return null; }
+import AuthNavigator from './AuthNavigator.tsx';
+export default AuthNavigator;
