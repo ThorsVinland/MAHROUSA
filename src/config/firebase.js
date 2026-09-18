@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAnalytics, isSupported } from "firebase/analytics";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, initializeFirestore } from "firebase/firestore";
 import { 
   getAuth, 
   initializeAuth, 
@@ -29,7 +29,14 @@ isSupported().then((supported) => {
   }
 });
 
-const db = getFirestore(app);
+let db;
+try {
+  db = initializeFirestore(app, {
+    experimentalForceLongPolling: true,
+  });
+} catch (e) {
+  db = getFirestore(app);
+}
 
 let auth;
 if (Platform.OS === "web") {

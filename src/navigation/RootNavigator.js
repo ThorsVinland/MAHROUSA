@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BackHandler, View, ActivityIndicator } from 'react-native';
+import Toast from 'react-native-toast-message';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SplashScreen from '../screens/auth/SplashScreen';
 import SelectRoleScreen from '../screens/auth/SelectRoleScreen';
@@ -14,6 +15,7 @@ export default function RootNavigator() {
   const [selectedRole, setSelectedRole] = useState(null); // 'volunteer' or 'organization'
   const [otpPhoneNumber, setOtpPhoneNumber] = useState('');
   const [flowData, setFlowData] = useState(null);
+  const backPressCountRef = useRef(0);
 
   useEffect(() => {
     const checkFirstLaunch = async () => {
@@ -43,8 +45,22 @@ export default function RootNavigator() {
         return true;
       }
       if (currentScreen === 'SelectRole') {
-        setCurrentScreen('Splash');
-        return true;
+        if (backPressCountRef.current === 0) {
+          backPressCountRef.current = 1;
+          Toast.show({
+            type: 'customInfo',
+            text1: 'اضغط مرة أخرى للخروج من التطبيق',
+            position: 'bottom',
+            bottomOffset: 80,
+          });
+          setTimeout(() => {
+            backPressCountRef.current = 0;
+          }, 2000);
+          return true; // منع الخروج وانتظار الضغطة الثانية
+        } else {
+          BackHandler.exitApp();
+          return true;
+        }
       }
       if (currentScreen !== 'Splash') {
         setCurrentScreen('SelectRole');
@@ -71,7 +87,7 @@ export default function RootNavigator() {
   };
 
   const handleLogout = () => {
-    setCurrentScreen('Splash');
+    setCurrentScreen('SelectRole');
     setSelectedRole(null);
     setOtpPhoneNumber('');
     setFlowData(null);

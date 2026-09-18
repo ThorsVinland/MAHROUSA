@@ -108,11 +108,11 @@ export default function VerifyOtpScreen({ phoneNumber, flowData, onVerifySuccess
       
       setIsLoading(false);
 
-      if (flowData?.role === 'organization') {
+      if (flowData?.type === 'register' && flowData?.role === 'organization') {
         showAlert(
-          'تم تسجيل طلبك بنجاح', 
-          'ستتم معالجة الطلب في غضون 48 ساعة وسنتصل بك.',
-          [{ text: 'حسناً', onPress: onBack }]
+          'تم استلام طلبكم بنجاح', 
+          'سيتم مراجعة الطلب خلال 48 ساعة الجارية والرد عليكم.',
+          [{ text: 'حسناً', onPress: () => onBack() }]
         );
       } else {
         onVerifySuccess(flowData?.role);
@@ -302,6 +302,7 @@ const styles = StyleSheet.create({
   },
   slotsContainer: {
     flexDirection: 'row',
+    direction: 'ltr',
     justifyContent: 'space-between',
     alignItems: 'center',
     width: '100%',

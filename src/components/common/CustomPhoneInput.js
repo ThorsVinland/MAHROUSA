@@ -161,12 +161,14 @@ const styles = StyleSheet.create({
   slotsContainer: {
     flex: 1,
     flexDirection: 'row',
+    direction: 'ltr',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 2,
   },
   slotGroup: {
     flexDirection: 'row',
+    direction: 'ltr',
     alignItems: 'center',
   },
   slot: {
@@ -190,6 +192,8 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     opacity: 0,
+    textAlign: 'left',
+    direction: 'ltr',
   },
   errorText: {
     fontSize: 12,

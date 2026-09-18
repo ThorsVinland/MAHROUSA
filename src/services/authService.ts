@@ -95,10 +95,24 @@ export const checkUserExists = async (phoneNumber: string) => {
     const userSnap = await getDoc(userRef);
     
     if (userSnap.exists()) {
-      return {
-        exists: true,
-        role: userSnap.data()?.role
-      };
+      const userData = userSnap.data();
+      const role = userData?.role;
+
+      // إذا كانت جمعية، تحقق من حالة الموافقة في مجموعة organizations
+      if (role === 'organization') {
+        const orgRef = doc(db, 'organizations', phoneNumber);
+        const orgSnap = await getDoc(orgRef);
+        if (orgSnap.exists()) {
+          const orgData = orgSnap.data();
+          if (orgData?.status !== 'approved') {
+            throw new Error('ACCOUNT_PENDING');
+          }
+        } else {
+          throw new Error('ACCOUNT_PENDING');
+        }
+      }
+
+      return { exists: true, role };
     }
     
     return { exists: false, role: null };
@@ -134,12 +148,18 @@ export const registerNewUser = async (
         createdAt: serverTimestamp()
       });
     } else if (role === 'organization') {
-      const pendingRef = doc(db, 'pending_organizations', phoneNumber);
-      await setDoc(pendingRef, {
+      const userRef = doc(db, 'users', phoneNumber);
+      await setDoc(userRef, {
+        role: role,
+        createdAt: serverTimestamp()
+      });
+
+      const orgRef = doc(db, 'organizations', phoneNumber);
+      await setDoc(orgRef, {
         fullName: fullName,
         phoneNumber: phoneNumber,
         role: role,
-        status: 'pending',
+        status: 'pending', // تنتظر مراجعة الإدارة
         ...additionalData,
         createdAt: serverTimestamp()
       });
