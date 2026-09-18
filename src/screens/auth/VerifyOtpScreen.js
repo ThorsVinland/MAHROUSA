@@ -80,24 +80,50 @@ export default function VerifyOtpScreen({ phoneNumber, flowData, onVerifySuccess
           console.warn('Storage save notice:', e);
         }
       } else {
-        // تسجيل الدخول: جلب بيانات المتطوع إن وجدت
+        // تسجيل الدخول: جلب بيانات المستخدم حسب دوره من Firestore
         let profile = {
           id: phoneNumber,
-          name: 'متطوع محروسة',
+          name: flowData?.role === 'organization' ? 'جمعية محروسة' : 'متطوع محروسة',
           phone: phoneNumber,
           role: flowData?.role || 'volunteer',
-          wilaya: '31',
+          wilaya: '16',
         };
-        try {
-          const userSnap = await getDoc(doc(db, 'volunteers', phoneNumber));
-          if (userSnap.exists()) {
-            const data = userSnap.data();
-            profile.name = data.fullName || profile.name;
-            profile.wilaya = data.wilaya ? String(data.wilaya) : profile.wilaya;
+
+        if (flowData?.role === 'organization') {
+          try {
+            const orgSnap = await getDoc(doc(db, 'organizations', phoneNumber));
+            if (orgSnap.exists()) {
+              const data = orgSnap.data();
+              profile.name = data.fullName || data.organizationName || profile.name;
+              profile.organizationName = profile.name;
+              profile.phoneNumber = data.phoneNumber || phoneNumber;
+              profile.legalNumber = data.legalNumber || data.registrationNumber || '';
+              profile.registrationNumber = profile.legalNumber;
+              profile.orgType = data.orgType || '';
+              profile.wilaya = data.wilaya ? String(data.wilaya) : profile.wilaya;
+              profile.commune = data.commune || '';
+              profile.repName = data.repName || data.managerName || '';
+              profile.repPhone = data.repPhone || data.managerPhone || '';
+              profile.status = data.status || 'approved';
+            }
+          } catch (e) {
+            console.log('Error fetching organization data:', e);
           }
-        } catch (e) {
-          console.log('Error fetching volunteer data:', e);
+        } else {
+          try {
+            const userSnap = await getDoc(doc(db, 'volunteers', phoneNumber));
+            if (userSnap.exists()) {
+              const data = userSnap.data();
+              profile.name = data.fullName || profile.name;
+              profile.wilaya = data.wilaya ? String(data.wilaya) : profile.wilaya;
+              profile.commune = data.commune || '';
+              profile.skill = data.skill || '';
+            }
+          } catch (e) {
+            console.log('Error fetching volunteer data:', e);
+          }
         }
+
         try {
           await AsyncStorage.setItem('current_user', JSON.stringify(profile));
           useAuthStore.getState().setUser(profile);

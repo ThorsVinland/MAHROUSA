@@ -21,6 +21,7 @@ const firebaseConfig = {
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
+/** @type {any} */
 let analytics;
 // Analytics is only available in environments that support it (like web).
 isSupported().then((supported) => {
@@ -29,6 +30,7 @@ isSupported().then((supported) => {
   }
 });
 
+/** @type {import('firebase/firestore').Firestore} */
 let db;
 try {
   db = initializeFirestore(app, {
@@ -38,6 +40,7 @@ try {
   db = getFirestore(app);
 }
 
+/** @type {import('firebase/auth').Auth} */
 let auth;
 if (Platform.OS === "web") {
   auth = getAuth(app);

@@ -24,6 +24,7 @@ export default function RootNavigator() {
   useEffect(() => {
     const checkFirstLaunch = async () => {
       try {
+        // await AsyncStorage.clear();
         const hasLaunched = await AsyncStorage.getItem('hasLaunchedBefore');
         if (hasLaunched === 'true') {
           if (isAuthenticated && user) {
