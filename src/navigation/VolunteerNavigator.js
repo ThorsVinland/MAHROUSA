@@ -3,43 +3,65 @@
 // موجه شاشات المتطوع الموحد (Bottom Tabs + Stack Details)
 // ============================================================
 
-import React from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { BottomNavBar } from '../components/home/BottomNavBar';
+import React, { useState, useEffect } from "react";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { BottomNavBar } from "../components/home/BottomNavBar";
+import { useAuthStore } from "../store/authStore";
+import { subscribeToVolunteerTasks } from "../services/tasksService";
 
 // Screens
-import HomeScreen from '../screens/volunteer/HomeScreen';
-import MapScreen from '../screens/volunteer/MapScreen';
-import MyTasksScreen from '../screens/volunteer/MyTasksScreen';
-import ProfileScreen from '../screens/volunteer/ProfileScreen';
-import NeedDetailsScreen from '../screens/volunteer/NeedDetailsScreen';
-import TaskTrackingScreen from '../screens/volunteer/TaskTrackingScreen';
-import SkillsSelectionScreen from '../screens/volunteer/SkillsSelectionScreen';
-import RatingScreen from '../screens/volunteer/RatingScreen';
+import HomeScreen from "../screens/volunteer/HomeScreen";
+import MapScreen from "../screens/volunteer/MapScreen";
+import MyTasksScreen from "../screens/volunteer/MyTasksScreen";
+import ProfileScreen from "../screens/volunteer/ProfileScreen";
+import NeedDetailsScreen from "../screens/volunteer/NeedDetailsScreen";
+import TaskTrackingScreen from "../screens/volunteer/TaskTrackingScreen";
+import SkillsSelectionScreen from "../screens/volunteer/SkillsSelectionScreen";
+import RatingScreen from "../screens/volunteer/RatingScreen";
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
 function VolunteerTabBar({ state, navigation }) {
   const currentRouteName = state.routes[state.index].name;
-  let activeTab = 'home';
-  if (currentRouteName === 'VolunteerMap') activeTab = 'map';
-  else if (currentRouteName === 'VolunteerTasks') activeTab = 'tasks';
-  else if (currentRouteName === 'VolunteerProfile') activeTab = 'profile';
+  let activeTab = "home";
+  if (currentRouteName === "VolunteerMap") activeTab = "map";
+  else if (currentRouteName === "VolunteerTasks") activeTab = "tasks";
+  else if (currentRouteName === "VolunteerProfile") activeTab = "profile";
+
+  const user = useAuthStore((s) => s.user);
+  const currentUserId = user?.id || user?.phone || "user_guest";
+  const userPhone = user?.phone;
+  const [activeTasksCount, setActiveTasksCount] = useState(0);
+
+  useEffect(() => {
+    const unsub = subscribeToVolunteerTasks(
+      currentUserId,
+      userPhone,
+      (tasks) => {
+        const count = tasks.filter((t) => !t.isCompletedByMe).length;
+        setActiveTasksCount(count);
+      },
+      () => {}
+    );
+    return () => {
+      if (typeof unsub === "function") unsub();
+    };
+  }, [currentUserId, userPhone]);
 
   const handleTabChange = (tab) => {
-    if (tab === 'home') navigation.navigate('VolunteerHome');
-    else if (tab === 'map') navigation.navigate('VolunteerMap');
-    else if (tab === 'tasks') navigation.navigate('VolunteerTasks');
-    else if (tab === 'profile') navigation.navigate('VolunteerProfile');
+    if (tab === "home") navigation.navigate("VolunteerHome");
+    else if (tab === "map") navigation.navigate("VolunteerMap");
+    else if (tab === "tasks") navigation.navigate("VolunteerTasks");
+    else if (tab === "profile") navigation.navigate("VolunteerProfile");
   };
 
   return (
     <BottomNavBar
       activeTab={activeTab}
       onTabChange={handleTabChange}
-      tasksBadgeCount={2}
+      tasksBadgeCount={activeTasksCount}
     />
   );
 }
@@ -65,7 +87,7 @@ export default function VolunteerNavigator({ onLogout }) {
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
-        animation: 'slide_from_right',
+        animation: "slide_from_right",
       }}
     >
       <Stack.Screen name="VolunteerMain">

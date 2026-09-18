@@ -28,6 +28,8 @@ export interface NeedItem {
   organizationId: string; // معرّف أو هاتف الجمعية الناشرة
   organizationName: string; // اسم الجمعية الناشرة
   organizationPhone: string; // رقم هاتف التواصل للجمعية
+  completedVolunteers?: string[]; // معرّفات المتطوعين الذين أتموا المهمة
+  confirmedAttendance?: string[]; // معرّفات المتطوعين الذين أكدوا الحضور
   status: 'active' | 'completed' | 'cancelled';
   createdAt?: any;
 }
