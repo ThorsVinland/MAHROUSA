@@ -1,4 +1,8 @@
+// ============================================================
 // src/navigation/OrganizationNavigator.js
+// Organization Screens Navigation (Bottom Tabs + Stack)
+// ============================================================
+
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -6,9 +10,9 @@ import { BottomNavBar } from '../components/home/BottomNavBar';
 
 // Screens
 import OrgDashboardScreen from '../screens/organization/OrgDashboardScreen';
-import ResourcesPoolScreen from '../screens/organization/ResourcesPoolScreen';
-import OrgReportsScreen from '../screens/organization/OrgReportsScreen';
-import ApplicantsScreen from '../screens/organization/ApplicantsScreen';
+import OrgMapScreen from '../screens/organization/OrgMapScreen';
+import OrgNeedsScreen from '../screens/organization/OrgNeedsScreen';
+import OrgProfileScreen from '../screens/organization/OrgProfileScreen';
 import CreateNeedScreen from '../screens/organization/CreateNeedScreen';
 import EmergencyModeScreen from '../screens/organization/EmergencyModeScreen';
 
@@ -18,15 +22,15 @@ const Stack = createNativeStackNavigator();
 function OrganizationTabBar({ state, navigation }) {
   const currentRouteName = state.routes[state.index].name;
   let activeTab = 'home';
-  if (currentRouteName === 'OrgResources') activeTab = 'map';
-  else if (currentRouteName === 'OrgReports') activeTab = 'tasks';
-  else if (currentRouteName === 'OrgApplicants') activeTab = 'profile';
+  if (currentRouteName === 'OrgMap') activeTab = 'map';
+  else if (currentRouteName === 'OrgNeeds') activeTab = 'tasks';
+  else if (currentRouteName === 'OrgProfile') activeTab = 'profile';
 
   const handleTabChange = (tab) => {
     if (tab === 'home') navigation.navigate('OrgDashboard');
-    else if (tab === 'map') navigation.navigate('OrgResources');
-    else if (tab === 'tasks') navigation.navigate('OrgReports');
-    else if (tab === 'profile') navigation.navigate('OrgApplicants');
+    else if (tab === 'map') navigation.navigate('OrgMap');
+    else if (tab === 'tasks') navigation.navigate('OrgNeeds');
+    else if (tab === 'profile') navigation.navigate('OrgProfile');
   };
 
   return (
@@ -34,6 +38,12 @@ function OrganizationTabBar({ state, navigation }) {
       activeTab={activeTab}
       onTabChange={handleTabChange}
       tasksBadgeCount={0}
+      labels={{
+        home: 'الرئيسية',
+        map: 'الخريطة',
+        tasks: 'الاحتياجات',
+        profile: 'حسابي',
+      }}
     />
   );
 }
@@ -47,9 +57,9 @@ function OrganizationTabs() {
       }}
     >
       <Tab.Screen name="OrgDashboard" component={OrgDashboardScreen} />
-      <Tab.Screen name="OrgResources" component={ResourcesPoolScreen} />
-      <Tab.Screen name="OrgReports" component={OrgReportsScreen} />
-      <Tab.Screen name="OrgApplicants" component={ApplicantsScreen} />
+      <Tab.Screen name="OrgMap" component={OrgMapScreen} />
+      <Tab.Screen name="OrgNeeds" component={OrgNeedsScreen} />
+      <Tab.Screen name="OrgProfile" component={OrgProfileScreen} />
     </Tab.Navigator>
   );
 }

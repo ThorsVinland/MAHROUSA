@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Colors } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 import { NextTask } from '../../types/home.types';
 
 interface NextTaskCardProps {
@@ -21,6 +21,9 @@ export const NextTaskCard: React.FC<NextTaskCardProps> = ({
   onViewDetails,
   isConfirmed = false,
 }) => {
+  const { colors: Colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(Colors), [Colors]);
+
   return (
     <View style={styles.card}>
       {/* ROW 1: Badge + View Details */}
@@ -58,7 +61,7 @@ export const NextTaskCard: React.FC<NextTaskCardProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (Colors: any) => StyleSheet.create({
   card: {
     backgroundColor: Colors.surface,
     borderRadius: 20,

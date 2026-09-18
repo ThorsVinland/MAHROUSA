@@ -6,7 +6,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 import { VolunteerStats } from '../../types/home.types';
 
 interface StatsRowProps {
@@ -19,24 +19,32 @@ interface StatCardProps {
   hasStar?: boolean;
 }
 
-const StatCard: React.FC<StatCardProps> = ({ value, label, hasStar = false }) => (
-  <View style={styles.card}>
-    <View style={styles.valueRow}>
-      {hasStar && (
-        <Ionicons
-          name="star"
-          size={17}
-          color={Colors.gold}
-          style={styles.starIcon}
-        />
-      )}
-      <Text style={styles.valueText}>{value}</Text>
+const StatCard: React.FC<StatCardProps> = ({ value, label, hasStar = false }) => {
+  const { colors: Colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(Colors), [Colors]);
+
+  return (
+    <View style={styles.card}>
+      <View style={styles.valueRow}>
+        {hasStar && (
+          <Ionicons
+            name="star"
+            size={17}
+            color={Colors.gold}
+            style={styles.starIcon}
+          />
+        )}
+        <Text style={styles.valueText}>{value}</Text>
+      </View>
+      <Text style={styles.labelText}>{label}</Text>
     </View>
-    <Text style={styles.labelText}>{label}</Text>
-  </View>
-);
+  );
+};
 
 export const StatsRow: React.FC<StatsRowProps> = ({ stats }) => {
+  const { colors: Colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(Colors), [Colors]);
+  
   return (
     <View style={styles.container}>
       {/* Right: Completed Tasks */}
@@ -51,7 +59,7 @@ export const StatsRow: React.FC<StatsRowProps> = ({ stats }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (Colors: any) => StyleSheet.create({
   container: {
     flexDirection: 'row-reverse',
     marginHorizontal: 18,

@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
   Animated,
 } from 'react-native';
-import { Colors } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 
 interface UrgentBannerProps {
   title?: string;
@@ -26,6 +26,9 @@ export const UrgentBanner: React.FC<UrgentBannerProps> = ({
   actionText = '← عرض التفاصيل',
   onPress,
 }) => {
+  const { colors: Colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(Colors), [Colors]);
+
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -77,7 +80,7 @@ export const UrgentBanner: React.FC<UrgentBannerProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (Colors: any) => StyleSheet.create({
   container: {
     backgroundColor: Colors.primaryNavy,
     borderRadius: 20,

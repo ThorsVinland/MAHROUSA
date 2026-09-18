@@ -11,7 +11,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { Colors } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 import { FilterType } from '../../types/home.types';
 
 interface FilterChipsProps {
@@ -35,6 +35,9 @@ export const FilterChips: React.FC<FilterChipsProps> = ({
   activeFilter,
   onFilterChange,
 }) => {
+  const { colors: Colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(Colors), [Colors]);
+
   return (
     <View style={styles.wrapper}>
       <ScrollView
@@ -76,7 +79,7 @@ export const FilterChips: React.FC<FilterChipsProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (Colors: any) => StyleSheet.create({
   wrapper: {
     marginBottom: 16,
   },

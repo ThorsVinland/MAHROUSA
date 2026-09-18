@@ -6,7 +6,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Colors } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 import { MapMarker } from '../../types/home.types';
 import { SolidarityMap } from '../map/SolidarityMap';
 
@@ -16,6 +16,9 @@ interface MapPreviewProps {
 }
 
 export const MapPreview: React.FC<MapPreviewProps> = ({ markers, onPress }) => {
+  const { colors: Colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(Colors), [Colors]);
+
   return (
     <TouchableOpacity
       style={styles.container}
@@ -59,7 +62,7 @@ export const MapPreview: React.FC<MapPreviewProps> = ({ markers, onPress }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (Colors: any) => StyleSheet.create({
   container: {
     backgroundColor: Colors.surface,
     borderRadius: 20,

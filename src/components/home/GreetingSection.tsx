@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 
 interface GreetingSectionProps {
   name: string;
@@ -16,6 +16,9 @@ export const GreetingSection: React.FC<GreetingSectionProps> = ({
   name,
   newNeedsCount,
 }) => {
+  const { colors: Colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(Colors), [Colors]);
+
   return (
     <View style={styles.container}>
       <Text style={styles.greetingText}>أهلاً، {name} 👋</Text>
@@ -26,7 +29,7 @@ export const GreetingSection: React.FC<GreetingSectionProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (Colors: any) => StyleSheet.create({
   container: {
     paddingHorizontal: 20,
     paddingTop: 12,

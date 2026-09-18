@@ -6,7 +6,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 
 interface TopBarProps {
   notificationCount?: number;
@@ -21,6 +21,9 @@ export const TopBar: React.FC<TopBarProps> = ({
   onNotificationPress,
   onLocationPress,
 }) => {
+  const { colors: Colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(Colors), [Colors]);
+
   return (
     <View style={styles.container}>
       {/* Right Side: Location Pill */}
@@ -61,7 +64,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (Colors: any) => StyleSheet.create({
   container: {
     flexDirection: 'row-reverse',
     alignItems: 'center',

@@ -6,7 +6,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { ScrollView, StyleSheet, Alert, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 import { FilterType, MapMarker } from '../../types/home.types';
 import { AuthUser } from '../../types/auth.types';
 import {
@@ -39,6 +39,9 @@ interface HomeScreenProps {
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
+  const { colors: Colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(Colors), [Colors]);
+
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [isAttendanceConfirmed, setIsAttendanceConfirmed] = useState(false);
 
@@ -186,7 +189,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
 export default HomeScreen;
 
-const styles = StyleSheet.create({
+const getStyles = (Colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,

@@ -7,7 +7,7 @@ import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 import { MapMarker } from '../../types/home.types';
 import { MAP_MARKERS, CURRENT_WILAYA } from '../../data/homeMockData';
 import { useAuthStore } from '../../store/authStore';
@@ -27,6 +27,9 @@ interface MapScreenProps {
 type FilterOption = 'all' | 'crisis' | 'resource';
 
 export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
+  const { colors: Colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(Colors), [Colors]);
+
   const [filter, setFilter] = useState<FilterOption>('all');
 
   // Dynamic user wilaya from auth store
@@ -163,7 +166,7 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
 
 export default MapScreen;
 
-const styles = StyleSheet.create({
+const getStyles = (Colors: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 10 },
   backBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: Colors.surface, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#F0EBE1' },

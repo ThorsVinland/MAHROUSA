@@ -7,20 +7,35 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 import { HomeTabType } from '../../types/home.types';
 
 interface BottomNavBarProps {
   activeTab: HomeTabType;
   onTabChange?: (tab: HomeTabType) => void;
   tasksBadgeCount?: number;
+  labels?: {
+    home: string;
+    map: string;
+    tasks: string;
+    profile: string;
+  };
 }
 
 export const BottomNavBar: React.FC<BottomNavBarProps> = ({
   activeTab,
   onTabChange,
   tasksBadgeCount = 2,
+  labels = {
+    home: 'الرئيسية',
+    map: 'الخريطة',
+    tasks: 'مهامي',
+    profile: 'حسابي',
+  },
 }) => {
+  const { colors: Colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(Colors), [Colors]);
+
   const insets = useSafeAreaInsets();
 
   return (
@@ -44,7 +59,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
               activeTab === 'home' && styles.activeTabLabel,
             ]}
           >
-            الرئيسية
+            {labels.home}
           </Text>
         </TouchableOpacity>
 
@@ -66,7 +81,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
               activeTab === 'map' && styles.activeTabLabel,
             ]}
           >
-            الخريطة
+            {labels.map}
           </Text>
         </TouchableOpacity>
 
@@ -101,7 +116,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
               activeTab === 'tasks' && styles.activeTabLabel,
             ]}
           >
-            مهامي
+            {labels.tasks}
           </Text>
         </TouchableOpacity>
 
@@ -125,7 +140,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
               activeTab === 'profile' && styles.activeTabLabel,
             ]}
           >
-            حسابي
+            {labels.profile}
           </Text>
         </TouchableOpacity>
       </View>
@@ -133,7 +148,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (Colors: any) => StyleSheet.create({
   wrapper: {
     backgroundColor: Colors.surface,
     borderTopWidth: 1,

@@ -6,7 +6,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 import { NeedCardItem, PriorityLevel } from '../../types/home.types';
 
 interface NeedCardProps {
@@ -15,10 +15,10 @@ interface NeedCardProps {
   onReadyPress?: () => void;
 }
 
-const BADGE_CONFIG: Record<
+const getBadgeConfig = (Colors: any): Record<
   PriorityLevel,
   { label: string; bg: string; text: string }
-> = {
+> => ({
   urgent: {
     label: '🔴 عاجل',
     bg: Colors.badgeUrgentBg,
@@ -39,14 +39,18 @@ const BADGE_CONFIG: Record<
     bg: Colors.badgeSummerBg,
     text: Colors.badgeSummerText,
   },
-};
+});
 
 export const NeedCard: React.FC<NeedCardProps> = ({
   need,
   onPress,
   onReadyPress,
 }) => {
-  const badge = BADGE_CONFIG[need.priority] || BADGE_CONFIG.normal;
+  const { colors: Colors } = useTheme();
+  const styles = React.useMemo(() => getStyles(Colors), [Colors]);
+
+  const badgeConfig = React.useMemo(() => getBadgeConfig(Colors), [Colors]);
+  const badge = badgeConfig[need.priority] || badgeConfig.normal;
   const progressRatio = Math.min(
     need.volunteersJoined / Math.max(need.volunteersNeeded, 1),
     1
@@ -118,7 +122,7 @@ export const NeedCard: React.FC<NeedCardProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (Colors: any) => StyleSheet.create({
   card: {
     backgroundColor: Colors.surface,
     borderRadius: 20,

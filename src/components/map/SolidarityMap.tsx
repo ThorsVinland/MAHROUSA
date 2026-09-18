@@ -10,22 +10,26 @@ import { WebView, WebViewMessageEvent } from 'react-native-webview';
 import { MapMarker } from '../../types/home.types';
 
 interface SolidarityMapProps {
-  markers: MapMarker[];
+  markers?: MapMarker[];
   selectedMarkerId?: string | null;
   onSelectMarker?: (marker: MapMarker) => void;
   centerLat?: number;
   centerLng?: number;
   zoom?: number;
   isMini?: boolean;
+  onMapPress?: (coords: { lat: number; lng: number }) => void;
+  pickedLocation?: { lat: number; lng: number } | null;
 }
 
 export const SolidarityMap: React.FC<SolidarityMapProps> = ({
-  markers,
+  markers = [],
   onSelectMarker,
   centerLat = 36.5,
   centerLng = 3.2,
   zoom = 7,
   isMini = false,
+  onMapPress,
+  pickedLocation,
 }) => {
   const webViewRef = useRef<WebView>(null);
 
@@ -62,12 +66,30 @@ export const SolidarityMap: React.FC<SolidarityMapProps> = ({
             var popupContent = '<div class="popup-box"><div class="popup-badge ${badgeClass}">${badgeLabel}</div><div class="popup-title">${m.city}</div><div class="popup-desc">${isCrisis ? 'فرق التطوع مطلوبة لدعم المتضررين' : 'مركز نشاط المتطوع والدعم الميداني'}</div></div>';
             marker.bindPopup(popupContent);
             marker.on('click', function() {
-              window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ id: '${m.id}', city: '${m.city}', type: '${m.type}' }));
+              window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'marker_click', id: '${m.id}' }));
             });
           })();
         `;
       })
       .join('\n');
+
+    const pickedScript = pickedLocation ? `
+      (function() {
+        var pickedIcon = L.divIcon({
+          className: 'custom-div-icon',
+          html: '<div class="picked-marker"><span>📍</span></div><div class="city-tag">الموقع المحدد</div>',
+          iconSize: [60, 48],
+          iconAnchor: [30, 24]
+        });
+        L.marker([${pickedLocation.lat}, ${pickedLocation.lng}], { icon: pickedIcon }).addTo(map);
+      })();
+    ` : '';
+
+    const clickEventScript = onMapPress ? `
+      map.on('click', function(e) {
+        window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'map_click', lat: e.latlng.lat, lng: e.latlng.lng }));
+      });
+    ` : '';
 
     return `
       <!DOCTYPE html>
@@ -91,9 +113,14 @@ export const SolidarityMap: React.FC<SolidarityMapProps> = ({
             70% { box-shadow: 0 0 0 14px rgba(39,174,96,0); }
             100% { box-shadow: 0 0 0 0 rgba(39,174,96,0); }
           }
+          @keyframes bounce-blue {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+          }
           .custom-div-icon { display: flex; flex-direction: column; align-items: center; justify-content: center; }
           .crisis-marker { width: 30px; height: 30px; border-radius: 15px; background: #E74C3C; border: 2.5px solid #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 13px; animation: pulse-red 1.6s infinite; }
           .resource-marker { width: 30px; height: 30px; border-radius: 15px; background: #27AE60; border: 2.5px solid #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 13px; animation: pulse-green 2s infinite; }
+          .picked-marker { width: 34px; height: 34px; border-radius: 17px; background: #3498DB; border: 2.5px solid #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 18px; box-shadow: 0 4px 8px rgba(0,0,0,0.3); animation: bounce-blue 1s infinite; }
           .city-tag { background: rgba(255,255,255,0.95); color: #1A1A2E; font-size: 10px; font-weight: 800; padding: 1px 6px; border-radius: 6px; margin-top: 2px; box-shadow: 0 2px 4px rgba(0,0,0,0.15); white-space: nowrap; }
           .leaflet-popup-content-wrapper { border-radius: 14px; padding: 2px; direction: rtl; text-align: right; box-shadow: 0 4px 16px rgba(0,0,0,0.15); border: 1px solid #E5E7EB; }
           .popup-box { padding: 4px; }
@@ -120,23 +147,33 @@ export const SolidarityMap: React.FC<SolidarityMapProps> = ({
             subdomains: ['a', 'b', 'c']
           }).addTo(map);
           ${markersScript}
+          ${pickedScript}
+          ${clickEventScript}
         </script>
       </body>
       </html>
     `;
-  }, [markers, centerLat, centerLng, zoom, isMini]);
+  }, [markers, centerLat, centerLng, zoom, isMini, pickedLocation, onMapPress]);
 
   const handleMessage = useCallback(
     (event: WebViewMessageEvent) => {
       try {
-        const data = JSON.parse(event.nativeEvent.data) as { id: string };
-        const found = markers.find((m) => m.id === data.id);
-        if (found && onSelectMarker) onSelectMarker(found);
+        const data = JSON.parse(event.nativeEvent.data) as { type?: string; id?: string; lat?: number; lng?: number };
+        
+        if (data.type === 'map_click' && onMapPress && data.lat !== undefined && data.lng !== undefined) {
+          onMapPress({ lat: data.lat, lng: data.lng });
+          return;
+        }
+
+        if ((data.type === 'marker_click' || !data.type) && data.id) {
+          const found = markers?.find((m) => m.id === data.id);
+          if (found && onSelectMarker) onSelectMarker(found);
+        }
       } catch (e) {
         // ignore malformed message
       }
     },
-    [markers, onSelectMarker]
+    [markers, onSelectMarker, onMapPress]
   );
 
   return (

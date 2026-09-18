@@ -9,6 +9,7 @@ import RegisterScreen from '../screens/auth/RegisterScreen';
 import VerifyOtpScreen from '../screens/auth/VerifyOtpScreen';
 import VolunteerMainScreen from '../screens/main/VolunteerMainScreen';
 import OrganizationMainScreen from '../screens/main/OrganizationMainScreen';
+import { useAuthStore } from '../store/authStore';
 
 export default function RootNavigator() { 
   const [currentScreen, setCurrentScreen] = useState('Loading'); // Loading, Splash, SelectRole, Register, Login, VerifyOTP, VolunteerMain, OrganizationMain
@@ -16,13 +17,20 @@ export default function RootNavigator() {
   const [otpPhoneNumber, setOtpPhoneNumber] = useState('');
   const [flowData, setFlowData] = useState(null);
   const backPressCountRef = useRef(0);
+  
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
     const checkFirstLaunch = async () => {
       try {
         const hasLaunched = await AsyncStorage.getItem('hasLaunchedBefore');
         if (hasLaunched === 'true') {
-          setCurrentScreen('SelectRole'); // تخطي شاشة الترحيب إذا دخل من قبل
+          if (isAuthenticated && user) {
+            setCurrentScreen(user.role === 'organization' ? 'OrganizationMain' : 'VolunteerMain');
+          } else {
+            setCurrentScreen('SelectRole'); // تخطي شاشة الترحيب إذا دخل من قبل
+          }
         } else {
           setCurrentScreen('Splash');
         }
@@ -33,6 +41,13 @@ export default function RootNavigator() {
     };
     checkFirstLaunch();
   }, []);
+
+  // Listen for logout events from the store
+  useEffect(() => {
+    if (!isAuthenticated && (currentScreen === 'VolunteerMain' || currentScreen === 'OrganizationMain')) {
+      handleLogout();
+    }
+  }, [isAuthenticated]);
 
   // دعم زر الرجوع الخاص بالهاتف (أندرويد)
   useEffect(() => {
