@@ -10,7 +10,7 @@ import { useTheme } from '../../context/ThemeContext';
 
 interface TopBarProps {
   notificationCount?: number;
-  wilaya: string;
+  wilaya?: string;
   onNotificationPress?: () => void;
   onLocationPress?: () => void;
 }
@@ -26,16 +26,20 @@ export const TopBar: React.FC<TopBarProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* Right Side: Location Pill */}
-      <TouchableOpacity
-        style={styles.locationPill}
-        onPress={onLocationPress}
-        activeOpacity={0.8}
-      >
-        <Ionicons name="location-sharp" size={15} color={Colors.mainBlue} />
-        <Text style={styles.locationText}>{wilaya}</Text>
-        <Ionicons name="chevron-down" size={14} color={Colors.mainBlue} />
-      </TouchableOpacity>
+      {/* Right Side: Location Pill or Spacer */}
+      {wilaya ? (
+        <TouchableOpacity
+          style={styles.locationPill}
+          onPress={onLocationPress}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="location-sharp" size={15} color={Colors.mainBlue} />
+          <Text style={styles.locationText}>{wilaya}</Text>
+          <Ionicons name="chevron-down" size={14} color={Colors.mainBlue} />
+        </TouchableOpacity>
+      ) : (
+        <View style={{ width: 40 }} />
+      )}
 
       {/* Center: Brand Logo + Name */}
       <View style={styles.brandRow}>
@@ -44,7 +48,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           style={styles.brandIcon}
           resizeMode="contain"
         />
-        <Text style={styles.brandText}>محروسة</Text>
+        {/* <Text style={styles.brandText}>محروسة</Text> */}
       </View>
 
       {/* Left Side: Notification Bell with Badge */}
@@ -95,13 +99,17 @@ const getStyles = (Colors: any) => StyleSheet.create({
     color: Colors.mainBlue,
   },
   brandRow: {
-    flexDirection: 'row-reverse',
+    position: 'absolute',
+    left: 0,
+    right: 0,
     alignItems: 'center',
-    gap: 6,
+    justifyContent: 'center',
+    zIndex: 0,
+    pointerEvents: 'none',
   },
   brandIcon: {
-    width: 32,
-    height: 32,
+    width: 42,
+    height: 42,
   },
   brandText: {
     fontSize: 19,

@@ -65,11 +65,15 @@ export default function OrgNeedsScreen({ navigation }: OrgNeedsScreenProps) {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      <TopBar wilaya="إدارة إعلانات الجمعية" />
+      <TopBar />
 
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         {/* Header Stats */}
         <View style={styles.headerBox}>
+          <View style={styles.sectionTitleRow}>
+            <Text style={styles.sectionTitle}>إدارة إعلانات الجمعية</Text>
+          </View>
+
           <View style={styles.headerStatsRow}>
             <View style={styles.statBox}>
               <Text style={styles.statNum}>{needs.length}</Text>
@@ -229,6 +233,18 @@ const getStyles = (Colors: any) =>
     },
     headerBox: {
       marginBottom: 16,
+    },
+    sectionTitleRow: {
+      flexDirection: 'row-reverse',
+      alignItems: 'center',
+      marginBottom: 12,
+      paddingHorizontal: 2,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '800',
+      color: Colors.primaryNavy,
+      textAlign: 'right',
     },
     headerStatsRow: {
       flexDirection: 'row-reverse',

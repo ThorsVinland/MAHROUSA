@@ -186,6 +186,7 @@ export default function RootNavigator() {
   // Fallback to Login
   return (
     <LoginScreen 
+      selectedRole={selectedRole}
       onGoToRegister={() => setCurrentScreen('Register')} 
       onBack={() => setCurrentScreen('SelectRole')}
       onGoToVerifyOtp={(phone, data) => {

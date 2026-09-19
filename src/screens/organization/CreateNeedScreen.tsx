@@ -3,27 +3,32 @@
 // Screen for creating new volunteer needs / announcements to Firestore
 // ============================================================
 
-import React, { useState, useMemo } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TextInput,
-  TouchableOpacity,
-  Modal,
-  Alert,
   ActivityIndicator,
   FlatList,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../../context/ThemeContext';
+import CustomPhoneInput from '../../components/common/CustomPhoneInput';
+import DatePickerModal from '../../components/common/DatePickerModal';
 import { SolidarityMap } from '../../components/map/SolidarityMap';
-import { useAuthStore } from '../../store/authStore';
 import { WILAYAS } from '../../constants/algeria';
+import { useAlert } from '../../context/AlertContext';
+import { useTheme } from '../../context/ThemeContext';
+import { MAP_MARKERS } from '../../data/homeMockData';
+import { createNeed, subscribeToAllNeeds } from '../../services/needsService';
+import { useAuthStore } from '../../store/authStore';
+import { MapMarker } from '../../types/home.types';
 import { NeedType, PriorityLevel } from '../../types/need.types';
-import { createNeed } from '../../services/needsService';
+const PhoneInput = CustomPhoneInput as React.ComponentType<any>;
 
 const NEED_TYPES: { id: NeedType; label: string; icon: string; desc: string }[] = [
   { id: 'يد عاملة', label: 'يد عاملة', icon: 'people', desc: 'متطوعون ميدانيون' },
@@ -39,7 +44,8 @@ const PRIORITIES: { id: PriorityLevel; label: string; badge: string; color: stri
 ];
 
 export default function CreateNeedScreen({ navigation }: any) {
-  const { colors: Colors } = useTheme();
+  const { colors: Colors, isDarkMode } = useTheme();
+  const { showAlert }: any = useAlert();
   const { user } = useAuthStore();
   const styles = useMemo(() => getStyles(Colors), [Colors]);
 
@@ -49,34 +55,102 @@ export default function CreateNeedScreen({ navigation }: any) {
   const [title, setTitle] = useState('');
   const [needType, setNeedType] = useState<NeedType>('يد عاملة');
   const [quantity, setQuantity] = useState('10');
-  const [selectedWilayaCode, setSelectedWilayaCode] = useState(orgUser?.wilaya || '16');
-  const [locationDetails, setLocationDetails] = useState('');
   const [phone, setPhone] = useState(orgUser?.phone || orgUser?.phoneNumber || '');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<PriorityLevel>('urgent');
 
-  // Dates
-  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
-  const defaultEndStr = useMemo(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 7);
-    return d.toISOString().split('T')[0];
-  }, []);
-  const [startDate, setStartDate] = useState(todayStr);
-  const [endDate, setEndDate] = useState(defaultEndStr);
+  // Origin Location (الانطلاق / نقطة التجمع)
+  const [selectedWilayaCode, setSelectedWilayaCode] = useState(orgUser?.wilaya || '16');
+  const [locationDetails, setLocationDetails] = useState('');
+  const [pickedLocation, setPickedLocation] = useState<{ lat: number; lng: number } | null>(null);
 
-  // Modals
+  // Destination Location (موقع الوصول)
+  const [destinationWilayaCode, setDestinationWilayaCode] = useState<string>('');
+  const [destinationLocationDetails, setDestinationLocationDetails] = useState('');
+  const [destinationLocation, setDestinationLocation] = useState<{ lat: number; lng: number } | null>(null);
+
+  // Dates
+  const today = new Date();
+  const defaultEnd = new Date();
+  defaultEnd.setDate(today.getDate() + 7);
+
+  const [startDateObj, setStartDateObj] = useState(today);
+  const [endDateObj, setEndDateObj] = useState(defaultEnd);
+
+  const formatLocalDate = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  const startDate = useMemo(() => formatLocalDate(startDateObj), [startDateObj]);
+  const endDate = useMemo(() => formatLocalDate(endDateObj), [endDateObj]);
+
+  // Modals & Navigation
+  const [activeWilayaTarget, setActiveWilayaTarget] = useState<'origin' | 'destination'>('origin');
   const [isWilayaModalVisible, setIsWilayaModalVisible] = useState(false);
   const [wilayaSearch, setWilayaSearch] = useState('');
+
   const [isMapModalVisible, setIsMapModalVisible] = useState(false);
-  const [pickedLocation, setPickedLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [mapTarget, setMapTarget] = useState<'origin' | 'destination'>('origin');
+  const [tempPickedLocation, setTempPickedLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [tempSelectedCrisis, setTempSelectedCrisis] = useState<MapMarker | null>(null);
+
+  const [isStartDatePickerVisible, setIsStartDatePickerVisible] = useState(false);
+  const [isEndDatePickerVisible, setIsEndDatePickerVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Selected Wilaya Object
+  // Published Crises (Mock + Live Firestore Needs)
+  const [publishedCrises, setPublishedCrises] = useState<MapMarker[]>(() => {
+    return MAP_MARKERS.filter((m) => m.type === 'crisis');
+  });
+
+  useEffect(() => {
+    try {
+      const unsubscribe = subscribeToAllNeeds((needs) => {
+        const firestoreCrisisMarkers: MapMarker[] = needs
+          .filter((n) => n.coordinates && n.coordinates.lat && n.coordinates.lng)
+          .map((n) => ({
+            id: n.id,
+            city: `${n.wilayaName || ''} - ${n.title}`,
+            latitude: n.coordinates!.lat,
+            longitude: n.coordinates!.lng,
+            type: n.priority === 'urgent' ? 'crisis' : 'resource',
+          }));
+
+        const defaultCrises = MAP_MARKERS.filter((m) => m.type === 'crisis');
+        const combined = [...defaultCrises];
+
+        firestoreCrisisMarkers.forEach((fMarker) => {
+          if (!combined.some((c) => c.id === fMarker.id)) {
+            combined.push(fMarker);
+          }
+        });
+
+        setPublishedCrises(combined);
+      });
+
+      return () => {
+        if (unsubscribe) unsubscribe();
+      };
+    } catch (e) {
+      console.warn('Error loading live crises markers:', e);
+    }
+  }, []);
+
+  // Selected Origin Wilaya Object
   const selectedWilayaObj = useMemo(() => {
     const cleanCode = selectedWilayaCode?.padStart(2, '0');
     return WILAYAS.find((w) => w.value === cleanCode || w.value === selectedWilayaCode) || WILAYAS[15];
   }, [selectedWilayaCode]);
+
+  // Selected Destination Wilaya Object
+  const selectedDestWilayaObj = useMemo(() => {
+    if (!destinationWilayaCode) return null;
+    const cleanCode = destinationWilayaCode.padStart(2, '0');
+    return WILAYAS.find((w) => w.value === cleanCode || w.value === destinationWilayaCode) || null;
+  }, [destinationWilayaCode]);
 
   const filteredWilayas = useMemo(() => {
     if (!wilayaSearch.trim()) return WILAYAS;
@@ -97,22 +171,46 @@ export default function CreateNeedScreen({ navigation }: any) {
     setQuantity(String(nextVal));
   };
 
+  const handleOpenMap = (target: 'origin' | 'destination') => {
+    setMapTarget(target);
+    setTempPickedLocation(target === 'origin' ? pickedLocation : destinationLocation);
+    setTempSelectedCrisis(null);
+    setIsMapModalVisible(true);
+  };
+
+  const handleConfirmMapSelection = () => {
+    if (!tempPickedLocation) {
+      showAlert('تنبيه', 'يرجى الضغط على الخريطة لتحديد الموقع أولاً أو اختيار إحدى الأزمات.');
+      return;
+    }
+
+    if (mapTarget === 'origin') {
+      setPickedLocation(tempPickedLocation);
+      if (tempSelectedCrisis && !locationDetails.trim()) {
+        setLocationDetails(tempSelectedCrisis.city);
+      }
+    } else {
+      setDestinationLocation(tempPickedLocation);
+      if (tempSelectedCrisis && !destinationLocationDetails.trim()) {
+        setDestinationLocationDetails(tempSelectedCrisis.city);
+      }
+    }
+
+    setIsMapModalVisible(false);
+  };
+
   const handleSubmit = async () => {
     if (!title.trim()) {
-      Alert.alert('تنبيه', 'يرجى إدخال عنوان الإعلان أو الاحتياج.');
+      showAlert('تنبيه', 'يرجى إدخال عنوان الإعلان أو الاحتياج.');
       return;
     }
     const qtyNum = parseInt(quantity, 10);
     if (isNaN(qtyNum) || qtyNum <= 0) {
-      Alert.alert('تنبيه', 'يرجى تحديد عدد الأشخاص المطلوب بشكل صحيح.');
-      return;
-    }
-    if (!startDate || !endDate) {
-      Alert.alert('تنبيه', 'يرجى تحديد مدة الاحتياج (من تاريخ ... إلى تاريخ ...).');
+      showAlert('تنبيه', 'يرجى تحديد عدد الأشخاص المطلوب بشكل صحيح.');
       return;
     }
     if (!phone.trim()) {
-      Alert.alert('تنبيه', 'يرجى كتابة رقم هاتف التواصل للجمعية.');
+      showAlert('تنبيه', 'يرجى كتابة رقم هاتف التواصل للجمعية.');
       return;
     }
 
@@ -133,24 +231,28 @@ export default function CreateNeedScreen({ navigation }: any) {
         wilayaName: selectedWilayaObj.label,
         locationDetails: locationDetails.trim() || selectedWilayaObj.label,
         coordinates: pickedLocation,
-        startDate: startDate.trim(),
-        endDate: endDate.trim(),
+        destinationWilaya: selectedDestWilayaObj?.value || '',
+        destinationWilayaName: selectedDestWilayaObj?.label || '',
+        destinationDetails: destinationLocationDetails.trim() || '',
+        destinationCoordinates: destinationLocation,
+        startDate: startDate,
+        endDate: endDate,
         priority: priority,
         description: description.trim(),
         organizationId: orgUser?.id || orgUser?.phone || 'org_default',
         organizationName: orgName,
-        organizationPhone: phone.trim(),
+        organizationPhone: '+213' + phone.trim().replace(/^0+/, ''),
       });
 
       setIsSubmitting(false);
 
-      Alert.alert('تم بنجاح ✓', 'تم نشر إعلان الاحتياج في Firestore بنجاح وستظهر فوراً لجميع المتطوعين!', [
+      showAlert('تم بنجاح ✓', 'تم نشر إعلان الاحتياج بنجاح وستظهر فوراً لجميع المتطوعين!', [
         { text: 'تم', onPress: () => navigation.goBack() },
       ]);
     } catch (error: any) {
       setIsSubmitting(false);
       console.error('Error submitting need:', error);
-      Alert.alert('خطأ', error?.message || 'فشل في نشر الاحتياج، يرجى المحاولة مرة أخرى.');
+      showAlert('خطأ', error?.message || 'فشل في نشر الاحتياج، يرجى المحاولة مرة أخرى.');
     }
   };
 
@@ -158,17 +260,17 @@ export default function CreateNeedScreen({ navigation }: any) {
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
-          <Ionicons name="arrow-forward" size={20} color={Colors.primaryNavy} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>نشر إعلان احتياج جديد</Text>
         <View style={{ width: 38 }} />
+        <Text style={styles.headerTitle}>نشر إعلان احتياج جديد</Text>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
+          <Ionicons name="arrow-back" size={20} color={Colors.primaryNavy} />
+        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         {/* 1. عنوان الاحتياج */}
         <View style={styles.formGroup}>
-          <Text style={styles.label}>عنوان الإعلان / الاحتياج *</Text>
+          <Text style={styles.label}>عنوان الإعلان / الاحتياج</Text>
           <TextInput
             style={styles.input}
             placeholder="مثال: مطلوب متطوعون لتوزيع المساعدات في حي السلام"
@@ -181,7 +283,7 @@ export default function CreateNeedScreen({ navigation }: any) {
 
         {/* 2. نوع الاحتياج */}
         <View style={styles.formGroup}>
-          <Text style={styles.label}>نوع الاحتياج *</Text>
+          <Text style={styles.label}>نوع الاحتياج</Text>
           <View style={styles.needTypesGrid}>
             {NEED_TYPES.map((item) => {
               const isSelected = needType === item.id;
@@ -213,7 +315,7 @@ export default function CreateNeedScreen({ navigation }: any) {
 
         {/* 3. الأولوية (أحمر، أصفر، أخضر) */}
         <View style={styles.formGroup}>
-          <Text style={styles.label}>درجة الأولوية (نوع البطاقة) *</Text>
+          <Text style={styles.label}>درجة الأولوية</Text>
           <View style={styles.priorityRow}>
             {PRIORITIES.map((p) => {
               const isSelected = priority === p.id;
@@ -240,7 +342,7 @@ export default function CreateNeedScreen({ navigation }: any) {
 
         {/* 4. الكمية: عدد الأشخاص */}
         <View style={styles.formGroup}>
-          <Text style={styles.label}>الكمية: عدد الأشخاص المطلوبين *</Text>
+          <Text style={styles.label}>عدد الأشخاص المطلوبين</Text>
           <View style={styles.stepperContainer}>
             <TouchableOpacity
               style={styles.stepperBtn}
@@ -267,69 +369,81 @@ export default function CreateNeedScreen({ navigation }: any) {
             </TouchableOpacity>
           </View>
 
-          {/* Quick Presets */}
-          <View style={styles.presetsRow}>
-            {[5, 10, 20, 30, 50].map((num) => (
+          {/* Quick Presets (Horizontal Scrollable) */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.presetsScrollContent}
+            style={styles.presetsScrollView}
+          >
+            {[5, 10, 20, 30, 50, 100].map((num) => (
               <TouchableOpacity
                 key={num}
                 style={[styles.presetChip, quantity === String(num) && styles.presetChipActive]}
                 onPress={() => handleQuickQuantity(num)}
+                activeOpacity={0.7}
               >
                 <Text style={[styles.presetText, quantity === String(num) && styles.presetTextActive]}>
                   {num} شخص
                 </Text>
               </TouchableOpacity>
             ))}
-          </View>
+          </ScrollView>
         </View>
 
         {/* 5. المدة: من تاريخ ... إلى تاريخ ... */}
         <View style={styles.formGroup}>
-          <Text style={styles.label}>المدة الزمنية (من تاريخ ... إلى تاريخ ...) *</Text>
+          <Text style={styles.label}>المدة الزمنية</Text>
           <View style={styles.dateRow}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.subLabel}>إلى غاية تاريخ:</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor={Colors.placeholder}
-                value={endDate}
-                onChangeText={setEndDate}
-                textAlign="center"
-              />
+              <Text style={styles.subLabel}>بداية من تاريخ:</Text>
+              <TouchableOpacity
+                style={styles.dateInputContainer}
+                onPress={() => setIsStartDatePickerVisible(true)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.dateInputText}>{startDate}</Text>
+                <Ionicons name="calendar-outline" size={20} color={Colors.primaryNavy} />
+              </TouchableOpacity>
             </View>
 
-            <View style={{ width: 12 }} />
+            <View style={{ width: 15 }} />
 
             <View style={{ flex: 1 }}>
-              <Text style={styles.subLabel}>من تاريخ:</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor={Colors.placeholder}
-                value={startDate}
-                onChangeText={setStartDate}
-                textAlign="center"
-              />
+              <Text style={styles.subLabel}>إلى غاية تاريخ:</Text>
+              <TouchableOpacity
+                style={styles.dateInputContainer}
+                onPress={() => setIsEndDatePickerVisible(true)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.dateInputText}>{endDate}</Text>
+                <Ionicons name="calendar-outline" size={20} color={Colors.primaryNavy} />
+              </TouchableOpacity>
             </View>
           </View>
         </View>
 
-        {/* 6. الموقع (الولاية + تفاصيل الموقع + الخريطة) */}
+        {/* 6. الموقع / نقطة التجمع (الانطلاق) */}
         <View style={styles.formGroup}>
-          <Text style={styles.label}>الموقع والولاية *</Text>
+          <Text style={styles.label}>الموقع / نقطة التجمع</Text>
+
           <TouchableOpacity
             style={styles.dropdownSelector}
-            onPress={() => setIsWilayaModalVisible(true)}
+            onPress={() => {
+              setActiveWilayaTarget('origin');
+              setIsWilayaModalVisible(true);
+            }}
             activeOpacity={0.8}
           >
             <Ionicons name="chevron-down" size={20} color={Colors.textSecondary} />
-            <Text style={styles.dropdownText}>{selectedWilayaObj.label}</Text>
+            <Text style={[styles.dropdownText, { flex: 1, textAlign: 'right', marginRight: 10 }]}>
+              الولاية: {selectedWilayaObj.label}
+            </Text>
           </TouchableOpacity>
 
           <TextInput
             style={[styles.input, { marginTop: 10 }]}
-            placeholder="تفاصيل العنوان (البلدية، الحي، نقطة التجمع...)"
+            placeholder="اكتب اسم الحي أو الشارع بدقة..."
             placeholderTextColor={Colors.placeholder}
             value={locationDetails}
             onChangeText={setLocationDetails}
@@ -338,7 +452,7 @@ export default function CreateNeedScreen({ navigation }: any) {
 
           <TouchableOpacity
             style={[styles.mapButton, pickedLocation && styles.mapButtonActive]}
-            onPress={() => setIsMapModalVisible(true)}
+            onPress={() => handleOpenMap('origin')}
             activeOpacity={0.8}
           >
             <Ionicons
@@ -348,27 +462,75 @@ export default function CreateNeedScreen({ navigation }: any) {
             />
             <Text style={[styles.mapButtonText, pickedLocation && { color: Colors.success }]}>
               {pickedLocation
-                ? 'تم تحديد الإحداثيات على الخريطة ✓'
-                : 'تحديد الموقع الجغرافي على الخريطة (اختياري)'}
+                ? 'تم تحديد موقع الانطلاق على الخريطة ✓'
+                : 'تحديد موقع الانطلاق من الخريطة (اختياري)'}
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* 7. هاتف التواصل */}
+        {/* 7. موقع الوصول (الوجهة) */}
         <View style={styles.formGroup}>
-          <Text style={styles.label}>رقم هاتف التواصل للجمعية *</Text>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.label}>موقع الوصول</Text>
+            <View style={styles.optionalBadge}>
+              <Text style={styles.optionalBadgeText}>اختياري / وجهة المساعدة</Text>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={styles.dropdownSelector}
+            onPress={() => {
+              setActiveWilayaTarget('destination');
+              setIsWilayaModalVisible(true);
+            }}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="chevron-down" size={20} color={Colors.textSecondary} />
+            <Text style={[styles.dropdownText, { flex: 1, textAlign: 'right', marginRight: 10 }]}>
+              الولاية: {selectedDestWilayaObj ? selectedDestWilayaObj.label : 'اختر ولاية الوصول (اختياري)'}
+            </Text>
+          </TouchableOpacity>
+
           <TextInput
-            style={styles.input}
-            placeholder="05 / 06 / 07 ..."
+            style={[styles.input, { marginTop: 10 }]}
+            placeholder="اكتب تفاصيل أو عنوان موقع الوصول..."
             placeholderTextColor={Colors.placeholder}
+            value={destinationLocationDetails}
+            onChangeText={setDestinationLocationDetails}
+            textAlign="right"
+          />
+
+          <TouchableOpacity
+            style={[styles.mapButton, styles.destinationMapBtn, destinationLocation && styles.mapButtonActive]}
+            onPress={() => handleOpenMap('destination')}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name={destinationLocation ? 'checkmark-circle' : 'flag'}
+              size={22}
+              color={destinationLocation ? Colors.success : '#C0392B'}
+            />
+            <Text style={[styles.mapButtonText, { color: destinationLocation ? Colors.success : '#C0392B' }]}>
+              {destinationLocation
+                ? 'تم تحديد موقع الوصول على الخريطة ✓'
+                : 'تحديد موقع الوصول من الخريطة (أو اختر من الأزمات المنشورة)'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* 8. رقم هاتف الجمعية */}
+        <View style={styles.formGroup}>
+          <PhoneInput
+            label="رقم هاتف التواصل للجمعية"
+            placeholder="أدخل رقم الهاتف"
+            themeMode={isDarkMode ? 'dark' : 'light'}
+            countryCode="+213"
             value={phone}
             onChangeText={setPhone}
-            keyboardType="phone-pad"
-            textAlign="right"
           />
         </View>
 
-        {/* 8. تفاصيل إضافية */}
+        {/* 9. تفاصيل إضافية */}
         <View style={styles.formGroup}>
           <Text style={styles.label}>تفاصيل إضافية وشروط المتطوعين</Text>
           <TextInput
@@ -395,10 +557,7 @@ export default function CreateNeedScreen({ navigation }: any) {
           {isSubmitting ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : (
-            <>
-              <Text style={styles.submitButtonText}>نشر الاحتياج في Firestore</Text>
-              <Ionicons name="cloud-upload-outline" size={22} color="#FFFFFF" />
-            </>
+            <Text style={styles.submitButtonText}>نشر</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -410,7 +569,9 @@ export default function CreateNeedScreen({ navigation }: any) {
             <TouchableOpacity onPress={() => setIsWilayaModalVisible(false)} style={styles.modalCloseBtn}>
               <Text style={styles.modalCloseText}>إغلاق</Text>
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>اختر الولاية</Text>
+            <Text style={styles.modalTitle}>
+              {activeWilayaTarget === 'origin' ? 'اختر ولاية الانطلاق / التجمع' : 'اختر ولاية الوصول'}
+            </Text>
           </View>
 
           <View style={styles.searchBox}>
@@ -429,12 +590,17 @@ export default function CreateNeedScreen({ navigation }: any) {
             data={filteredWilayas}
             keyExtractor={(item) => item.value}
             renderItem={({ item }) => {
-              const isSelected = selectedWilayaObj.value === item.value;
+              const currentCode = activeWilayaTarget === 'origin' ? selectedWilayaObj.value : selectedDestWilayaObj?.value;
+              const isSelected = currentCode === item.value;
               return (
                 <TouchableOpacity
                   style={[styles.wilayaItem, isSelected && styles.wilayaItemSelected]}
                   onPress={() => {
-                    setSelectedWilayaCode(item.value);
+                    if (activeWilayaTarget === 'origin') {
+                      setSelectedWilayaCode(item.value);
+                    } else {
+                      setDestinationWilayaCode(item.value);
+                    }
                     setIsWilayaModalVisible(false);
                   }}
                 >
@@ -449,31 +615,87 @@ export default function CreateNeedScreen({ navigation }: any) {
         </SafeAreaView>
       </Modal>
 
-      {/* Map Picker Modal */}
+      {/* Map Picker Modal (Shows Crises Markers) */}
       <Modal visible={isMapModalVisible} animationType="slide" onRequestClose={() => setIsMapModalVisible(false)}>
         <SafeAreaView style={styles.modalSafeArea} edges={['top', 'bottom']}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setIsMapModalVisible(false)} style={styles.modalCloseBtn}>
-              <Text style={styles.modalCloseText}>إغلاق</Text>
+              <Text style={styles.modalCloseText}>إلغاء</Text>
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>اضغط على الخريطة لتحديد الموقع</Text>
+            <Text style={styles.modalTitle}>
+              {mapTarget === 'origin' ? 'تحديد موقع الانطلاق' : 'تحديد موقع الوصول'}
+            </Text>
           </View>
+
+          {/* Helper Banner */}
+          <View style={[styles.mapTipBar, mapTarget === 'destination' && styles.mapTipBarDest]}>
+            <Ionicons
+              name={mapTarget === 'destination' ? 'warning' : 'information-circle'}
+              size={20}
+              color={mapTarget === 'destination' ? '#C0392B' : Colors.mainBlue}
+            />
+            <Text style={[styles.mapTipText, mapTarget === 'destination' && { color: '#922B21' }]}>
+              {mapTarget === 'destination'
+                ? '💡 يمكنك الضغط مباشرة على إحدى الأزمات المنشورة (🚨) لتحديدها كنقطة وصول، أو النقر على أي مكان بالخريطة.'
+                : '💡 اضغط على أي مكان بالخريطة لتحديد إحداثيات موقع الانطلاق والتجمع بدقة.'}
+            </Text>
+          </View>
+
           <View style={styles.modalMapContainer}>
             <SolidarityMap
-              onMapPress={(coords) => setPickedLocation(coords)}
-              pickedLocation={pickedLocation}
+              markers={publishedCrises}
+              pickedLocation={tempPickedLocation}
+              onMapPress={(coords) => {
+                setTempPickedLocation(coords);
+                setTempSelectedCrisis(null);
+              }}
+              onSelectMarker={(marker) => {
+                setTempPickedLocation({ lat: marker.latitude, lng: marker.longitude });
+                setTempSelectedCrisis(marker);
+              }}
             />
           </View>
+
           <View style={styles.modalFooter}>
+            {tempSelectedCrisis && (
+              <View style={styles.selectedCrisisBanner}>
+                <Text style={styles.selectedCrisisTitle}>
+                  🚨 تم اختيار أزمة: {tempSelectedCrisis.city}
+                </Text>
+              </View>
+            )}
             <TouchableOpacity
-              style={styles.confirmMapButton}
-              onPress={() => setIsMapModalVisible(false)}
+              style={[styles.confirmMapButton, !tempPickedLocation && { opacity: 0.6 }]}
+              onPress={handleConfirmMapSelection}
+              activeOpacity={0.8}
             >
-              <Text style={styles.confirmMapText}>تأكيد الموقع المحدد</Text>
+              <Text style={styles.confirmMapText}>
+                {tempPickedLocation ? 'تأكيد الموقع المحدد' : 'يرجى النقر على الخريطة لتحديد الموقع'}
+              </Text>
             </TouchableOpacity>
           </View>
         </SafeAreaView>
       </Modal>
+
+      {/* Start Date Picker Modal */}
+      <DatePickerModal
+        visible={isStartDatePickerVisible}
+        onClose={() => setIsStartDatePickerVisible(false)}
+        onConfirm={setStartDateObj}
+        initialDate={startDateObj}
+        minDate={today}
+        title="اختر تاريخ البداية"
+      />
+
+      {/* End Date Picker Modal */}
+      <DatePickerModal
+        visible={isEndDatePickerVisible}
+        onClose={() => setIsEndDatePickerVisible(false)}
+        onConfirm={setEndDateObj}
+        initialDate={endDateObj}
+        minDate={startDateObj}
+        title="اختر تاريخ النهاية"
+      />
     </SafeAreaView>
   );
 }
@@ -516,12 +738,29 @@ const getStyles = (Colors: any) =>
     formGroup: {
       marginBottom: 22,
     },
+    sectionHeaderRow: {
+      flexDirection: 'row-reverse',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
     label: {
       fontSize: 14,
       fontWeight: '700',
       color: Colors.primaryText,
       marginBottom: 8,
       textAlign: 'right',
+    },
+    optionalBadge: {
+      backgroundColor: '#FEF3C7',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 8,
+    },
+    optionalBadgeText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: '#B45309',
     },
     subLabel: {
       fontSize: 12,
@@ -642,10 +881,13 @@ const getStyles = (Colors: any) =>
       color: Colors.primaryNavy,
       paddingVertical: 10,
     },
-    presetsRow: {
+    presetsScrollView: {
+      marginTop: 10,
+    },
+    presetsScrollContent: {
       flexDirection: 'row-reverse',
       gap: 8,
-      marginTop: 8,
+      paddingVertical: 2,
     },
     presetChip: {
       backgroundColor: Colors.surface,
@@ -671,6 +913,22 @@ const getStyles = (Colors: any) =>
     dateRow: {
       flexDirection: 'row-reverse',
       justifyContent: 'space-between',
+    },
+    dateInputContainer: {
+      flexDirection: 'row-reverse',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: Colors.surface,
+      borderWidth: 1,
+      borderColor: '#E5E7EB',
+      borderRadius: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+    },
+    dateInputText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: Colors.primaryText,
     },
     dropdownSelector: {
       flexDirection: 'row-reverse',
@@ -700,6 +958,9 @@ const getStyles = (Colors: any) =>
       paddingVertical: 14,
       marginTop: 10,
       gap: 8,
+    },
+    destinationMapBtn: {
+      borderColor: '#E74C3C',
     },
     mapButtonActive: {
       borderColor: Colors.success,
@@ -757,6 +1018,28 @@ const getStyles = (Colors: any) =>
       fontWeight: '800',
       color: '#1A1A2E',
     },
+    mapTipBar: {
+      flexDirection: 'row-reverse',
+      alignItems: 'center',
+      backgroundColor: '#EBF5FB',
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      gap: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: '#D4E6F1',
+    },
+    mapTipBarDest: {
+      backgroundColor: '#FDEDEC',
+      borderBottomColor: '#FADBD8',
+    },
+    mapTipText: {
+      flex: 1,
+      fontSize: 12,
+      fontWeight: '600',
+      color: '#1B4F72',
+      textAlign: 'right',
+      lineHeight: 18,
+    },
     searchBox: {
       flexDirection: 'row-reverse',
       alignItems: 'center',
@@ -803,6 +1086,21 @@ const getStyles = (Colors: any) =>
       backgroundColor: '#FFFFFF',
       borderTopWidth: 1,
       borderTopColor: '#E5E7EB',
+    },
+    selectedCrisisBanner: {
+      backgroundColor: '#FEF2F2',
+      borderWidth: 1,
+      borderColor: '#F87171',
+      borderRadius: 12,
+      padding: 10,
+      marginBottom: 10,
+      alignItems: 'center',
+    },
+    selectedCrisisTitle: {
+      fontSize: 13,
+      fontWeight: '800',
+      color: '#B91C1C',
+      textAlign: 'center',
     },
     confirmMapButton: {
       backgroundColor: '#27AE60',

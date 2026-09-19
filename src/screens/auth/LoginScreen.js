@@ -21,7 +21,7 @@ import { checkUserExists } from '../../services/authService';
 import { normalizeDigits } from '../../utils/formatters';
 import { useAlert } from '../../context/AlertContext';
 
-export default function LoginScreen({ onGoToRegister, onBack, onGoToVerifyOtp }) {
+export default function LoginScreen({ selectedRole, onGoToRegister, onBack, onGoToVerifyOtp }) {
   const { themeMode, toggleTheme, isDarkMode, colors } = useTheme();
   const { showAlert } = useAlert();
   
@@ -41,6 +41,13 @@ export default function LoginScreen({ onGoToRegister, onBack, onGoToVerifyOtp })
       if (!exists) {
         setIsLoading(false);
         showAlert('خطأ', 'هذا الرقم غير مسجل، يرجى إنشاء حساب جديد أولاً.');
+        return;
+      }
+
+      if (selectedRole && role !== selectedRole) {
+        setIsLoading(false);
+        const roleText = selectedRole === 'organization' ? 'جمعية' : 'متطوع';
+        showAlert('خطأ', `هذا الرقم غير مسجل كـ ${roleText}، تأكد من اختيار نوع الحساب الصحيح.`);
         return;
       }
 

@@ -21,6 +21,13 @@ export interface NeedItem {
     lat: number;
     lng: number;
   } | null;
+  destinationWilaya?: string; // كود ولاية الوصول (اختياري)
+  destinationWilayaName?: string; // اسم ولاية الوصول (اختياري)
+  destinationDetails?: string; // تفاصيل أو عنوان موقع الوصول (اختياري)
+  destinationCoordinates?: {
+    lat: number;
+    lng: number;
+  } | null;
   startDate: string; // من تاريخ (مثال: '2025-05-01')
   endDate: string; // إلى تاريخ (مثال: '2025-05-10')
   priority: PriorityLevel; // 'urgent' (عاجل - أحمر), 'medium' (متوسط - أصفر), 'normal' (عادي - أخضر)

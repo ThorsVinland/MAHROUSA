@@ -32,6 +32,13 @@ export interface CreateNeedInput {
     lat: number;
     lng: number;
   } | null;
+  destinationWilaya?: string;
+  destinationWilayaName?: string;
+  destinationDetails?: string;
+  destinationCoordinates?: {
+    lat: number;
+    lng: number;
+  } | null;
   startDate: string;
   endDate: string;
   priority: PriorityLevel;
@@ -47,7 +54,8 @@ export interface CreateNeedInput {
 export const createNeed = async (input: CreateNeedInput): Promise<string> => {
   try {
     const needsRef = collection(db, 'needs');
-    const docRef = await addDoc(needsRef, {
+    
+    const needData = {
       title: input.title.trim(),
       needType: input.needType,
       quantity: Number(input.quantity) || 1,
@@ -57,6 +65,10 @@ export const createNeed = async (input: CreateNeedInput): Promise<string> => {
       wilayaName: input.wilayaName,
       locationDetails: input.locationDetails.trim(),
       coordinates: input.coordinates || null,
+      destinationWilaya: input.destinationWilaya || '',
+      destinationWilayaName: input.destinationWilayaName || '',
+      destinationDetails: input.destinationDetails?.trim() || '',
+      destinationCoordinates: input.destinationCoordinates || null,
       startDate: input.startDate,
       endDate: input.endDate,
       priority: input.priority,
@@ -66,8 +78,19 @@ export const createNeed = async (input: CreateNeedInput): Promise<string> => {
       organizationPhone: input.organizationPhone,
       status: 'active',
       createdAt: serverTimestamp(),
-    });
+    };
 
+    console.log('Publishing need to Firestore...');
+    
+    // Use Promise.race to timeout after 15 seconds if network is unresponsive
+    const docRef: any = await Promise.race([
+      addDoc(needsRef, needData),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('انتهى وقت الاتصال. يرجى التحقق من اتصالك بالإنترنت.')), 15000)
+      )
+    ]);
+
+    console.log('Need published successfully with ID:', docRef.id);
     return docRef.id;
   } catch (error) {
     console.error('Error creating need in Firestore:', error);
@@ -101,6 +124,10 @@ export const subscribeToAllNeeds = (
             wilayaName: data.wilayaName || '',
             locationDetails: data.locationDetails || '',
             coordinates: data.coordinates || null,
+            destinationWilaya: data.destinationWilaya || '',
+            destinationWilayaName: data.destinationWilayaName || '',
+            destinationDetails: data.destinationDetails || '',
+            destinationCoordinates: data.destinationCoordinates || null,
             startDate: data.startDate || '',
             endDate: data.endDate || '',
             priority: data.priority || 'normal',
@@ -154,6 +181,10 @@ export const subscribeToOrgNeeds = (
             wilayaName: data.wilayaName || '',
             locationDetails: data.locationDetails || '',
             coordinates: data.coordinates || null,
+            destinationWilaya: data.destinationWilaya || '',
+            destinationWilayaName: data.destinationWilayaName || '',
+            destinationDetails: data.destinationDetails || '',
+            destinationCoordinates: data.destinationCoordinates || null,
             startDate: data.startDate || '',
             endDate: data.endDate || '',
             priority: data.priority || 'normal',

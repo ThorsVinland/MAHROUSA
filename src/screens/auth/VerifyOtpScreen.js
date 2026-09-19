@@ -138,7 +138,7 @@ export default function VerifyOtpScreen({ phoneNumber, flowData, onVerifySuccess
         showAlert(
           'تم استلام طلبكم بنجاح', 
           'سيتم مراجعة الطلب خلال 48 ساعة الجارية والرد عليكم.',
-          [{ text: 'حسناً', onPress: () => onBack() }]
+          [{ text: 'حسناً', onPress: () => onVerifySuccess(flowData?.role) }]
         );
       } else {
         onVerifySuccess(flowData?.role);
