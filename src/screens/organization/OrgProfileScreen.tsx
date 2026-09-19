@@ -20,15 +20,15 @@ import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firesto
 import { db } from '../../config/firebase';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuthStore } from '../../store/authStore';
-import CustomAlert from '../../components/common/CustomAlert';
+import { useAlert } from '../../context/AlertContext';
 import { getWilayaInfo } from '../../utils/wilayaHelper';
 
 export default function OrgProfileScreen() {
   const { isDarkMode, toggleTheme, colors: Colors } = useTheme();
   const { user, logout } = useAuthStore();
+  const { showAlert } = useAlert();
   const styles = useMemo(() => getStyles(Colors), [Colors]);
 
-  const [isLogoutAlertVisible, setIsLogoutAlertVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -100,12 +100,14 @@ export default function OrgProfileScreen() {
   const wilayaInfo = useMemo(() => getWilayaInfo(orgData.wilaya), [orgData.wilaya]);
 
   const handleLogout = () => {
-    setIsLogoutAlertVisible(true);
-  };
-
-  const confirmLogout = () => {
-    setIsLogoutAlertVisible(false);
-    logout();
+    showAlert(
+      'تسجيل الخروج',
+      'هل أنت متأكد أنك تريد تسجيل الخروج من حساب الجمعية؟',
+      [
+        { text: 'إلغاء', style: 'cancel' },
+        { text: 'تأكيد الخروج', style: 'destructive', onPress: () => logout() }
+      ]
+    );
   };
 
   const isApproved = orgData.status === 'approved';
@@ -251,24 +253,6 @@ export default function OrgProfileScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
-
-      <CustomAlert
-        visible={isLogoutAlertVisible}
-        title="تسجيل الخروج"
-        message="هل أنت متأكد أنك تريد تسجيل الخروج من حساب الجمعية؟"
-        onClose={() => setIsLogoutAlertVisible(false)}
-        buttons={[
-          {
-            text: 'إلغاء',
-            style: 'cancel',
-          },
-          {
-            text: 'تأكيد الخروج',
-            style: 'destructive',
-            onPress: () => confirmLogout(),
-          },
-        ]}
-      />
     </SafeAreaView>
   );
 }

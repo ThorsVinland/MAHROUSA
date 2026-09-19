@@ -24,6 +24,7 @@ import { useAuthStore } from '../../store/authStore';
 import { NeedItem } from '../../types/need.types';
 import { volunteerToNeed, cancelVolunteerForNeed } from '../../services/needsService';
 import { SolidarityMap } from '../../components/map/SolidarityMap';
+import { useAlert } from '../../context/AlertContext';
 
 interface Props {
   navigation: any;
@@ -39,6 +40,7 @@ export default function NeedDetailsScreen({ navigation, route }: Props) {
   const { colors: Colors } = useTheme();
   const styles = useMemo(() => getStyles(Colors), [Colors]);
   const user = useAuthStore((state) => state.user);
+  const { showAlert } = useAlert();
   const currentUserId = user?.id || user?.phone || 'user_guest';
 
   const initialNeed = route.params?.need;
@@ -143,7 +145,7 @@ export default function NeedDetailsScreen({ navigation, route }: Props) {
       }
       Linking.openURL(`tel:${phoneUrl}`);
     } else {
-      Alert.alert('تنبيه', 'رقم الهاتف غير متوفر.');
+      showAlert('تنبيه', 'رقم الهاتف غير متوفر.');
     }
   };
 
@@ -152,7 +154,7 @@ export default function NeedDetailsScreen({ navigation, route }: Props) {
     if (!needId) return;
 
     if (isUserVolunteered) {
-      Alert.alert('إلغاء التطوع', 'هل تريد بالفعل إلغاء تطوعك في هذا الاحتياج؟', [
+      showAlert('إلغاء التطوع', 'هل تريد بالفعل إلغاء تطوعك في هذا الاحتياج؟', [
         { text: 'تراجع', style: 'cancel' },
         {
           text: 'تأكيد الإلغاء',
@@ -162,10 +164,10 @@ export default function NeedDetailsScreen({ navigation, route }: Props) {
               setIsActionLoading(true);
               await cancelVolunteerForNeed(needId, currentUserId);
               setIsActionLoading(false);
-              Alert.alert('تم', 'تم إلغاء تطوعك بنجاح.');
+              showAlert('تم', 'تم إلغاء تطوعك بنجاح.');
             } catch (err: any) {
               setIsActionLoading(false);
-              Alert.alert('خطأ', err?.message || 'تعذر إلغاء التطوع.');
+              showAlert('خطأ', err?.message || 'تعذر إلغاء التطوع.');
             }
           },
         },
@@ -174,7 +176,7 @@ export default function NeedDetailsScreen({ navigation, route }: Props) {
     }
 
     if (isFull) {
-      Alert.alert('عذراً', 'العدد المطلوب لهذا الاحتياج قد اكتمل بالفعل.');
+      showAlert('عذراً', 'العدد المطلوب لهذا الاحتياج قد اكتمل بالفعل.');
       return;
     }
 
@@ -182,10 +184,10 @@ export default function NeedDetailsScreen({ navigation, route }: Props) {
       setIsActionLoading(true);
       await volunteerToNeed(needId, currentUserId);
       setIsActionLoading(false);
-      Alert.alert('تم بنجاح ✓', 'شكراً لتطوعك ومساهمتك! تم تسجيلك بنجاح.');
+      showAlert('تم بنجاح ✓', 'شكراً لتطوعك ومساهمتك! تم تسجيلك بنجاح.');
     } catch (err: any) {
       setIsActionLoading(false);
-      Alert.alert('تنبيه', err?.message || 'فشلت عملية التطوع.');
+      showAlert('تنبيه', err?.message || 'فشلت عملية التطوع.');
     }
   };
 

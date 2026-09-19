@@ -3,188 +3,297 @@
 // Volunteer Profile Screen with user info and logout
 // ============================================================
 
-import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Switch } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/authStore';
 import { useTheme } from '../../context/ThemeContext';
 import { getWilayaInfo } from '../../utils/wilayaHelper';
-import CustomAlert from '../../components/common/CustomAlert';
+import { useAlert } from '../../context/AlertContext';
 
 export default function ProfileScreen() {
   const { user, logout } = useAuthStore();
   const { isDarkMode, toggleTheme, colors: Colors } = useTheme();
   const styles = React.useMemo(() => getStyles(Colors), [Colors]);
-  const [isLogoutAlertVisible, setIsLogoutAlertVisible] = useState(false);
+  const { showAlert } = useAlert();
 
   const handleLogout = () => {
-    setIsLogoutAlertVisible(true);
+    showAlert(
+      'تسجيل الخروج',
+      'هل أنت متأكد أنك تريد تسجيل الخروج؟',
+      [
+        { text: 'إلغاء', style: 'cancel' },
+        { text: 'تأكيد الخروج', style: 'destructive', onPress: () => logout() }
+      ]
+    );
   };
 
   const userWilayaInfo = useMemo(() => {
     return getWilayaInfo(user?.wilaya);
   }, [user?.wilaya]);
 
+  const userName = user?.name || user?.fullName || 'مستخدم غير معروف';
+  const roleName = user?.role === 'volunteer' ? 'متطوع مسجل' : user?.role || 'متطوع';
+
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <View style={styles.content}>
-        <View style={styles.card}>
-          <View style={styles.avatarPlaceholder}>
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header Section */}
+        <View style={styles.header}>
+          <View style={styles.avatarContainer}>
             <Text style={styles.avatarText}>
-              {user?.name ? user.name.charAt(0).toUpperCase() : 'م'}
+              {userName ? userName.charAt(0).toUpperCase() : 'م'}
             </Text>
           </View>
-          
-          <Text style={styles.name}>{user?.name || 'مستخدم غير معروف'}</Text>
-          <Text style={styles.role}>
-            {user?.role === 'volunteer' ? 'متطوع' : user?.role || 'دور غير محدد'}
-          </Text>
 
-          <View style={styles.infoSection}>
-            <View style={styles.infoRow}>
+          <Text style={styles.nameText}>{userName}</Text>
+          <Text style={styles.roleText}>{roleName}</Text>
+
+          {/* Account Status Badge */}
+          <View style={[styles.statusBadge, styles.statusBadgeApproved]}>
+            <Ionicons name="shield-checkmark" size={15} color="#27AE60" />
+            <Text style={[styles.statusBadgeText, { color: '#27AE60' }]}>
+              حساب مفعل في محروسة ✓
+            </Text>
+          </View>
+        </View>
+
+        {/* Quick Stats Grid */}
+        <View style={styles.statsGrid}>
+          <View style={styles.statCard}>
+            <Ionicons name="location-outline" size={24} color={Colors.urgent || '#E74C3C'} />
+            <Text style={styles.statValue}>{userWilayaInfo.name}</Text>
+            <Text style={styles.statLabel}>الولاية</Text>
+          </View>
+
+          <View style={styles.statCard}>
+            <Ionicons name="person-outline" size={24} color={Colors.primaryNavy} />
+            <Text style={styles.statValue}>{roleName}</Text>
+            <Text style={styles.statLabel}>نوع الحساب</Text>
+          </View>
+        </View>
+
+        {/* Section 1: Official Info */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>المعلومات الشخصية</Text>
+
+          <View style={styles.infoCard}>
+            <Ionicons name="call-outline" size={22} color={Colors.mainBlue} />
+            <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>رقم الهاتف</Text>
-              <Text style={styles.infoValue}>{user?.phone || '—'}</Text>
+              <Text style={styles.infoValue}>{user?.phone || '---'}</Text>
             </View>
-            <View style={styles.divider} />
-            <View style={styles.infoRow}>
+          </View>
+
+          <View style={styles.infoCard}>
+            <Ionicons name="map-outline" size={22} color={Colors.mainBlue} />
+            <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>الولاية</Text>
-              <Text style={styles.infoValue}>{userWilayaInfo.name} ({userWilayaInfo.code})</Text>
+              <Text style={styles.infoValue}>
+                {userWilayaInfo.name} ({userWilayaInfo.code})
+              </Text>
             </View>
           </View>
         </View>
 
-        <View style={styles.themeToggleContainer}>
-          <Text style={styles.themeToggleText}>الوضع الليلي</Text>
-          <Switch
-            value={isDarkMode}
-            onValueChange={toggleTheme}
-            trackColor={{ false: '#767577', true: Colors.mainBlue }}
-            thumbColor={isDarkMode ? '#ffffff' : '#f4f3f4'}
-          />
+        {/* Section 2: Settings & Actions */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>الإعدادات والحساب</Text>
+
+          <TouchableOpacity style={styles.actionCard} onPress={toggleTheme} activeOpacity={0.7}>
+            <View style={styles.actionLeft}>
+              <Ionicons name={isDarkMode ? 'sunny' : 'moon'} size={20} color={Colors.mainBlue} />
+              <Text style={styles.actionText}>
+                {isDarkMode ? 'تفعيل الوضع الفاتح' : 'تفعيل الوضع الداكن'}
+              </Text>
+            </View>
+            <Ionicons name="chevron-back" size={20} color={Colors.placeholder} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionCard, { marginTop: 12 }]}
+            onPress={handleLogout}
+            activeOpacity={0.7}
+          >
+            <View style={styles.actionLeft}>
+              <Ionicons name="log-out-outline" size={20} color={Colors.error} />
+              <Text style={[styles.actionText, { color: Colors.error }]}>تسجيل الخروج</Text>
+            </View>
+          </TouchableOpacity>
         </View>
-
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutButtonText}>تسجيل الخروج</Text>
-        </TouchableOpacity>
-      </View>
-
-      <CustomAlert
-        visible={isLogoutAlertVisible}
-        title="تسجيل الخروج"
-        message="هل أنت متأكد أنك تريد تسجيل الخروج؟"
-        onClose={() => setIsLogoutAlertVisible(false)}
-        buttons={[
-          {
-            text: 'إلغاء',
-            style: 'cancel',
-          },
-          {
-            text: 'تأكيد',
-            style: 'destructive',
-            onPress: () => logout(),
-          },
-        ]}
-      />
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
-const getStyles = (Colors: any) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  content: {
-    flex: 1,
-    padding: 20,
-    justifyContent: 'space-between',
-  },
-  card: {
-    backgroundColor: Colors.surface,
-    borderRadius: 16,
-    padding: 24,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  avatarPlaceholder: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: Colors.lightBlue,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  avatarText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: Colors.primaryNavy,
-  },
-  name: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: Colors.textPrimary,
-    marginBottom: 4,
-  },
-  role: {
-    fontSize: 16,
-    color: Colors.mainBlue,
-    marginBottom: 24,
-  },
-  infoSection: {
-    width: '100%',
-    backgroundColor: Colors.background,
-    borderRadius: 12,
-    padding: 16,
-  },
-  infoRow: {
-    flexDirection: 'row-reverse', // RTL
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  infoLabel: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-  },
-  infoValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: Colors.borderDefault,
-    marginVertical: 8,
-  },
-  themeToggleContainer: {
-    flexDirection: 'row-reverse',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
-    padding: 16,
-    borderRadius: 12,
-    marginTop: 16,
-  },
-  themeToggleText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-  },
-  logoutButton: {
-    backgroundColor: Colors.error,
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  logoutButtonText: {
-    color: Colors.surface,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-});
+const getStyles = (Colors: any) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: Colors.pageBackground || Colors.background,
+    },
+    scrollContainer: {
+      flexGrow: 1,
+      padding: 20,
+      paddingBottom: 40,
+    },
+    header: {
+      alignItems: 'center',
+      marginBottom: 24,
+      marginTop: 10,
+    },
+    avatarContainer: {
+      width: 86,
+      height: 86,
+      borderRadius: 43,
+      backgroundColor: '#EBF5FB',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 14,
+      borderWidth: 2,
+      borderColor: Colors.mainBlue,
+      shadowColor: Colors.mainBlue,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.15,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    avatarText: {
+      fontSize: 34,
+      fontWeight: 'bold',
+      color: Colors.primaryNavy,
+    },
+    nameText: {
+      fontSize: 22,
+      fontWeight: '900',
+      color: Colors.primaryText,
+      marginBottom: 4,
+      textAlign: 'center',
+    },
+    roleText: {
+      fontSize: 14,
+      color: Colors.textSecondary,
+      fontWeight: '600',
+      marginBottom: 10,
+    },
+    statusBadge: {
+      flexDirection: 'row-reverse',
+      alignItems: 'center',
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 14,
+      gap: 6,
+    },
+    statusBadgeApproved: {
+      backgroundColor: '#DCFCE7',
+      borderWidth: 1,
+      borderColor: '#86EFAC',
+    },
+    statusBadgeText: {
+      fontSize: 12,
+      fontWeight: '800',
+    },
+    statsGrid: {
+      flexDirection: 'row-reverse',
+      gap: 12,
+      marginBottom: 24,
+    },
+    statCard: {
+      flex: 1,
+      backgroundColor: Colors.surface,
+      borderRadius: 18,
+      padding: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: '#F0EBE1',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05,
+      shadowRadius: 4,
+      elevation: 2,
+      gap: 4,
+    },
+    statValue: {
+      fontSize: 18,
+      fontWeight: '900',
+      color: Colors.primaryNavy,
+      marginTop: 2,
+    },
+    statLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: Colors.textSecondary,
+    },
+    section: {
+      marginBottom: 24,
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '800',
+      color: Colors.primaryText,
+      marginBottom: 12,
+      textAlign: 'right',
+    },
+    infoCard: {
+      flexDirection: 'row-reverse',
+      alignItems: 'center',
+      backgroundColor: Colors.surface,
+      padding: 14,
+      borderRadius: 16,
+      marginBottom: 10,
+      borderWidth: 1,
+      borderColor: '#F0EBE1',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.04,
+      shadowRadius: 3,
+      elevation: 1,
+      gap: 12,
+    },
+    infoContent: {
+      flex: 1,
+      alignItems: 'flex-end',
+    },
+    infoLabel: {
+      fontSize: 12,
+      color: Colors.textSecondary,
+      fontWeight: '600',
+      marginBottom: 2,
+    },
+    infoValue: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: Colors.primaryText,
+      textAlign: 'right',
+    },
+    actionCard: {
+      flexDirection: 'row-reverse',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: Colors.surface,
+      padding: 16,
+      borderRadius: 16,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.04,
+      shadowRadius: 4,
+      elevation: 2,
+      borderWidth: 1,
+      borderColor: '#F0EBE1',
+    },
+    actionLeft: {
+      flexDirection: 'row-reverse',
+      alignItems: 'center',
+    },
+    actionText: {
+      fontSize: 15,
+      color: Colors.primaryText,
+      fontWeight: '700',
+      marginRight: 12,
+    },
+  });

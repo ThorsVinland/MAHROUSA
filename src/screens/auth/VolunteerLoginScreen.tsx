@@ -13,9 +13,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useAlert } from '../../context/AlertContext';
 import { AuthStackParamList } from '../../types/auth.types';
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
@@ -32,6 +32,7 @@ interface Props {
 }
 
 export const VolunteerLoginScreen: React.FC<Props> = ({ navigation }) => {
+  const { showAlert } = useAlert();
   const { form, isLoading, errorMessage, onSubmit } = useVolunteerLogin(() => {
     // RootNavigator automatically reacts to Zustand isAuthenticated
   });
@@ -43,7 +44,7 @@ export const VolunteerLoginScreen: React.FC<Props> = ({ navigation }) => {
   } = form;
 
   const handleForgotPassword = () => {
-    Alert.alert(
+    showAlert(
       'استرجاع كلمة السر',
       'سيتم إرسال رمز استرجاع الحساب عبر رسالة نصية قصيرة SMS لرقم هاتفك المسجل.'
     );

@@ -9,7 +9,6 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   ScrollView,
   StyleSheet,
-  Alert,
   View,
   Text,
   TouchableOpacity,
@@ -21,6 +20,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
+import { useAlert } from '../../context/AlertContext';
 import { MapMarker } from '../../types/home.types';
 import { AuthUser } from '../../types/auth.types';
 import { NeedItem, NeedType, SortFilterOption } from '../../types/need.types';
@@ -67,6 +67,7 @@ const CATEGORY_TABS: { id: string; label: string; icon?: string }[] = [
 export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const { colors: Colors } = useTheme();
   const styles = useMemo(() => getStyles(Colors), [Colors]);
+  const { showAlert } = useAlert();
 
   // Dynamic user data
   const user = useAuthStore((state) => state.user);
@@ -194,7 +195,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
     if (isVolunteered) {
       // Already volunteered -> prompt to cancel
-      Alert.alert(
+      showAlert(
         'إلغاء التطوع',
         'هل تريد إلغاء تطوعك في هذا الاحتياج؟',
         [
@@ -207,10 +208,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                 setActionLoadingId(need.id);
                 await cancelVolunteerForNeed(need.id, currentUserId);
                 setActionLoadingId(null);
-                Alert.alert('تم', 'تم إلغاء تطوعك في هذه المهمة.');
+                showAlert('تم', 'تم إلغاء تطوعك في هذه المهمة.');
               } catch (err: any) {
                 setActionLoadingId(null);
-                Alert.alert('خطأ', err?.message || 'تعذر إلغاء التطوع.');
+                showAlert('خطأ', err?.message || 'تعذر إلغاء التطوع.');
               }
             },
           },
@@ -221,7 +222,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
     // Checking if full
     if (need.volunteersCount >= need.quantity) {
-      Alert.alert('عذراً', 'العدد المطلوب لهذا الاحتياج قد اكتمل بالفعل.');
+      showAlert('عذراً', 'العدد المطلوب لهذا الاحتياج قد اكتمل بالفعل.');
       return;
     }
 
@@ -230,25 +231,25 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       setActionLoadingId(need.id);
       await volunteerToNeed(need.id, currentUserId);
       setActionLoadingId(null);
-      Alert.alert('تم بنجاح ✓', 'شكراً لتطوعك! تم تسجيل اسمك وزيادة العدد.');
+      showAlert('تم بنجاح ✓', 'شكراً لتطوعك! تم تسجيل اسمك وزيادة العدد.');
     } catch (err: any) {
       setActionLoadingId(null);
-      Alert.alert('تنبيه', err?.message || 'تعذر إتمام عملية التطوع.');
+      showAlert('تنبيه', err?.message || 'تعذر إتمام عملية التطوع.');
     }
   };
 
   const handleConfirmAttendance = useCallback(() => {
-    Alert.alert('تأكيد الحضور', 'هل أنت متأكد من حضورك لهذه المهمة؟', [
+    showAlert('تأكيد الحضور', 'هل أنت متأكد من حضورك لهذه المهمة؟', [
       { text: 'إلغاء', style: 'cancel' },
       {
         text: 'تأكيد ✓',
         onPress: () => {
           setIsAttendanceConfirmed(true);
-          Alert.alert('تم بنجاح', 'تم تأكيد حضورك للمهمة. شكراً لتطوعك!');
+          showAlert('تم بنجاح', 'تم تأكيد حضورك للمهمة. شكراً لتطوعك!');
         },
       },
     ]);
-  }, []);
+  }, [showAlert]);
 
   const updateWilaya = useCallback(
     (newWilaya: string) => {
@@ -267,7 +268,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   );
 
   const handleLocationPress = useCallback(() => {
-    Alert.alert(
+    showAlert(
       'ولايتك الحالية',
       `أنت مسجل حالياً في ولاية: ${userWilayaInfo.name}\n\nيمكنك تبديل ولايتك لمشاهدة الاحتياجات القريبة منك:`,
       [
@@ -278,7 +279,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         { text: 'إلغاء', style: 'cancel' },
       ]
     );
-  }, [userWilayaInfo, updateWilaya]);
+  }, [userWilayaInfo.name, updateWilaya, showAlert]);
 
   const filteredWilayasList = useMemo(() => {
     if (!wilayaSearch.trim()) return WILAYAS;
@@ -568,7 +569,7 @@ const getStyles = (Colors: any) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: Colors.background,
+      backgroundColor: Colors.pageBackground || Colors.background,
     },
     scrollContent: {
       paddingBottom: 24,

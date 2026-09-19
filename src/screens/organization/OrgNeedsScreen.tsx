@@ -11,11 +11,11 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
+import { useAlert } from '../../context/AlertContext';
 import { useAuthStore } from '../../store/authStore';
 import { TopBar } from '../../components/home/TopBar';
 import { NeedItem } from '../../types/need.types';
@@ -29,6 +29,7 @@ export default function OrgNeedsScreen({ navigation }: OrgNeedsScreenProps) {
   const { colors: Colors } = useTheme();
   const { user } = useAuthStore();
   const styles = useMemo(() => getStyles(Colors), [Colors]);
+  const { showAlert } = useAlert();
 
   const orgUser = user as any;
   const orgIdentifier = orgUser?.id || orgUser?.phone || orgUser?.phoneNumber || 'org_default';
@@ -46,7 +47,7 @@ export default function OrgNeedsScreen({ navigation }: OrgNeedsScreenProps) {
   }, [orgIdentifier]);
 
   const handleDeleteNeed = (need: NeedItem) => {
-    Alert.alert('حذف الإعلان', `هل أنت متأكد من حذف إعلان "${need.title}"؟`, [
+    showAlert('حذف الإعلان', `هل أنت متأكد من حذف إعلان "${need.title}"؟`, [
       { text: 'إلغاء', style: 'cancel' },
       {
         text: 'حذف',
@@ -54,9 +55,9 @@ export default function OrgNeedsScreen({ navigation }: OrgNeedsScreenProps) {
         onPress: async () => {
           try {
             await deleteNeed(need.id);
-            Alert.alert('تم', 'تم حذف الإعلان بنجاح.');
+            showAlert('تم', 'تم حذف الإعلان بنجاح.');
           } catch (err: any) {
-            Alert.alert('خطأ', err?.message || 'تعذر حذف الإعلان.');
+            showAlert('خطأ', err?.message || 'تعذر حذف الإعلان.');
           }
         },
       },

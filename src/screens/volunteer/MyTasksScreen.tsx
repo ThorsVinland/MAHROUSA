@@ -13,11 +13,11 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
-  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
+import { useAlert } from "../../context/AlertContext";
 import { useAuthStore } from "../../store/authStore";
 import { TaskTabType, VolunteerTaskItem, TaskStatsData } from "../../types/task.types";
 import {
@@ -37,6 +37,7 @@ interface Props {
 export default function MyTasksScreen({ navigation }: Props) {
   const { colors: Colors, isDarkMode } = useTheme();
   const styles = useMemo(() => getStyles(Colors, isDarkMode), [Colors, isDarkMode]);
+  const { showAlert } = useAlert();
 
   const user = useAuthStore((state) => state.user);
   const currentUserId = user?.id || user?.phone || "user_guest";
@@ -110,7 +111,7 @@ export default function MyTasksScreen({ navigation }: Props) {
   // 5. إجراء إتمام المهمة
   const handleCompleteTask = useCallback(
     (task: VolunteerTaskItem) => {
-      Alert.alert(
+      showAlert(
         "تأكيد إنجاز المهمة",
         `هل أتممت مهمة "${task.title}" الميدانية بنجاح؟`,
         [
@@ -123,20 +124,20 @@ export default function MyTasksScreen({ navigation }: Props) {
                 setActionLoadingId(task.id);
                 await markTaskAsCompleted(task.id, currentUserId, userPhone);
                 setActionLoadingId(null);
-                Alert.alert(
+                showAlert(
                   "بارك الله في جهودك 🌟",
                   "تم تسجيل إنجاز المهمة وتوثيق ساعاتك التطوعية في رصيد الأثر!"
                 );
               } catch (err: any) {
                 setActionLoadingId(null);
-                Alert.alert("خطأ", err?.message || "تعذر إتمام المهمة، حاول مجدداً.");
+                showAlert("خطأ", err?.message || "تعذر إتمام المهمة، حاول مجدداً.");
               }
             },
           },
         ]
       );
     },
-    [currentUserId, userPhone]
+    [currentUserId, userPhone, showAlert]
   );
 
   // 6. إجراء تأكيد الحضور
@@ -146,16 +147,16 @@ export default function MyTasksScreen({ navigation }: Props) {
         const nextState = !task.isAttendanceConfirmed;
         await toggleTaskAttendance(task.id, currentUserId, nextState, userPhone);
       } catch (err: any) {
-        Alert.alert("تنبيه", "تعذر تحديث حالة الحضور.");
+        showAlert("تنبيه", "تعذر تحديث حالة الحضور.");
       }
     },
-    [currentUserId, userPhone]
+    [currentUserId, userPhone, showAlert]
   );
 
   // 7. إجراء الاعتذار والانسحاب من المهمة
   const handleWithdrawTask = useCallback(
     (task: VolunteerTaskItem) => {
-      Alert.alert(
+      showAlert(
         "اعتذار عن المهمة",
         `هل أنت متأكد من الاعتذار عن مهمة "${task.title}"؟ سيتم إتاحة مقعدك الميداني لمتطوع آخر.`,
         [
@@ -168,17 +169,17 @@ export default function MyTasksScreen({ navigation }: Props) {
                 setActionLoadingId(task.id);
                 const res = await withdrawFromTask(task.id, currentUserId, userPhone);
                 setActionLoadingId(null);
-                Alert.alert("تم الإلغاء", res.message);
+                showAlert("تم الإلغاء", res.message);
               } catch (err: any) {
                 setActionLoadingId(null);
-                Alert.alert("خطأ", err?.message || "تعذر الاعتذار عن المهمة.");
+                showAlert("خطأ", err?.message || "تعذر الاعتذار عن المهمة.");
               }
             },
           },
         ]
       );
     },
-    [currentUserId, userPhone]
+    [currentUserId, userPhone, showAlert]
   );
 
   // 8. الانتقال للتفاصيل
@@ -314,7 +315,7 @@ const getStyles = (Colors: any, isDarkMode: boolean) =>
   StyleSheet.create({
     safeArea: {
       flex: 1,
-      backgroundColor: Colors.background,
+      backgroundColor: Colors.pageBackground || Colors.background,
     },
     header: {
       flexDirection: "row-reverse",
@@ -323,7 +324,7 @@ const getStyles = (Colors: any, isDarkMode: boolean) =>
       paddingHorizontal: 20,
       paddingTop: 10,
       paddingBottom: 14,
-      backgroundColor: Colors.surface,
+      backgroundColor: Colors.pageBackground,
       borderBottomWidth: 1,
       borderBottomColor: isDarkMode ? "#2D3748" : "#F0EBE1",
     },
@@ -359,7 +360,7 @@ const getStyles = (Colors: any, isDarkMode: boolean) =>
     },
     tabsContainer: {
       flexDirection: "row-reverse",
-      backgroundColor: isDarkMode ? "#1E293B" : "#ECE7DF",
+      backgroundColor: Colors.pageBackground,
       borderRadius: 14,
       marginHorizontal: 16,
       marginBottom: 16,

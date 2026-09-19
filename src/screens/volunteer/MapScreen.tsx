@@ -4,10 +4,11 @@
 // ============================================================
 
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
+import { useAlert } from '../../context/AlertContext';
 import { MapMarker } from '../../types/home.types';
 import { MAP_MARKERS, CURRENT_WILAYA } from '../../data/homeMockData';
 import { useAuthStore } from '../../store/authStore';
@@ -29,6 +30,7 @@ type FilterOption = 'all' | 'crisis' | 'resource';
 export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
   const { colors: Colors } = useTheme();
   const styles = React.useMemo(() => getStyles(Colors), [Colors]);
+  const { showAlert } = useAlert();
 
   const [filter, setFilter] = useState<FilterOption>('all');
 
@@ -154,7 +156,7 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
               marker={selectedMarker}
               onClose={() => setSelectedMarker(null)}
               onViewNeeds={(m) => {
-                Alert.alert(`احتياجات ${m.city}`, `يوجد حالياً مهام مفتوحة في ولاية ${m.city}.`);
+                showAlert(`احتياجات ${m.city}`, `يوجد حالياً مهام مفتوحة في ولاية ${m.city}.`);
               }}
             />
           </View>

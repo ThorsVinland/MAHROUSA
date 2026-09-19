@@ -10,10 +10,10 @@ import {
   StyleSheet,
   TouchableOpacity,
   Linking,
-  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
+import { useAlert } from "../../context/AlertContext";
 import { VolunteerTaskItem } from "../../types/task.types";
 
 interface Props {
@@ -35,11 +35,12 @@ export const VolunteerTaskCard: React.FC<Props> = ({
 }) => {
   const { colors: Colors, isDarkMode } = useTheme();
   const styles = React.useMemo(() => getStyles(Colors, isDarkMode), [Colors, isDarkMode]);
+  const { showAlert } = useAlert();
 
   // الاتصال الهاتفي بالجمعية
   const handleCallOrg = () => {
     if (!task.organizationPhone) {
-      Alert.alert("تنبيه", "رقم هاتف الجمعية غير متوفر حالياً.");
+      showAlert("تنبيه", "رقم هاتف الجمعية غير متوفر حالياً.");
       return;
     }
     let phoneUrl = task.organizationPhone;
@@ -47,7 +48,7 @@ export const VolunteerTaskCard: React.FC<Props> = ({
       phoneUrl = phoneUrl.replace('+213+213', '+213');
     }
     Linking.openURL(`tel:${phoneUrl}`).catch(() => {
-      Alert.alert("خطأ", "تعذر إجراء الاتصال الهاتفي.");
+      showAlert("خطأ", "تعذر إجراء الاتصال الهاتفي.");
     });
   };
 
