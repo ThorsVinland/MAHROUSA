@@ -42,7 +42,11 @@ export const VolunteerTaskCard: React.FC<Props> = ({
       Alert.alert("تنبيه", "رقم هاتف الجمعية غير متوفر حالياً.");
       return;
     }
-    Linking.openURL(`tel:${task.organizationPhone}`).catch(() => {
+    let phoneUrl = task.organizationPhone;
+    if (phoneUrl.startsWith('+213+213')) {
+      phoneUrl = phoneUrl.replace('+213+213', '+213');
+    }
+    Linking.openURL(`tel:${phoneUrl}`).catch(() => {
       Alert.alert("خطأ", "تعذر إجراء الاتصال الهاتفي.");
     });
   };

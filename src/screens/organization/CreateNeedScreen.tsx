@@ -223,26 +223,31 @@ export default function CreateNeedScreen({ navigation }: any) {
         orgUser?.fullName ||
         'جمعية محروسة';
 
-      await createNeed({
-        title: title.trim(),
-        needType: needType,
-        quantity: qtyNum,
-        wilaya: selectedWilayaObj.value,
-        wilayaName: selectedWilayaObj.label,
-        locationDetails: locationDetails.trim() || selectedWilayaObj.label,
-        coordinates: pickedLocation,
-        destinationWilaya: selectedDestWilayaObj?.value || '',
-        destinationWilayaName: selectedDestWilayaObj?.label || '',
-        destinationDetails: destinationLocationDetails.trim() || '',
-        destinationCoordinates: destinationLocation,
-        startDate: startDate,
-        endDate: endDate,
-        priority: priority,
-        description: description.trim(),
-        organizationId: orgUser?.id || orgUser?.phone || 'org_default',
-        organizationName: orgName,
-        organizationPhone: '+213' + phone.trim().replace(/^0+/, ''),
-      });
+        let cleanPhone = phone.trim();
+        if (cleanPhone.startsWith('+213')) cleanPhone = cleanPhone.substring(4);
+        else if (cleanPhone.startsWith('00213')) cleanPhone = cleanPhone.substring(5);
+        cleanPhone = cleanPhone.replace(/^0+/, '');
+
+        await createNeed({
+          title: title.trim(),
+          needType: needType,
+          quantity: qtyNum,
+          wilaya: selectedWilayaObj.value,
+          wilayaName: selectedWilayaObj.label,
+          locationDetails: locationDetails.trim() || selectedWilayaObj.label,
+          coordinates: pickedLocation,
+          destinationWilaya: selectedDestWilayaObj?.value || '',
+          destinationWilayaName: selectedDestWilayaObj?.label || '',
+          destinationDetails: destinationLocationDetails.trim() || '',
+          destinationCoordinates: destinationLocation,
+          startDate: startDate,
+          endDate: endDate,
+          priority: priority,
+          description: description.trim(),
+          organizationId: orgUser?.id || orgUser?.phone || 'org_default',
+          organizationName: orgName,
+          organizationPhone: '+213' + cleanPhone,
+        });
 
       setIsSubmitting(false);
 

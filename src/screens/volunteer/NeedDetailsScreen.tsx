@@ -137,7 +137,11 @@ export default function NeedDetailsScreen({ navigation, route }: Props) {
   // Handle direct call
   const handleCallOrg = () => {
     if (need?.organizationPhone) {
-      Linking.openURL(`tel:${need.organizationPhone}`);
+      let phoneUrl = need.organizationPhone;
+      if (phoneUrl.startsWith('+213+213')) {
+        phoneUrl = phoneUrl.replace('+213+213', '+213');
+      }
+      Linking.openURL(`tel:${phoneUrl}`);
     } else {
       Alert.alert('تنبيه', 'رقم الهاتف غير متوفر.');
     }
