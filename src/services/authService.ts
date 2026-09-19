@@ -4,7 +4,7 @@
 // ============================================================
 
 import { db, firebaseConfig } from '../config/firebase';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { normalizeDigits } from '../utils/formatters';
 import axios, { InternalAxiosRequestConfig } from 'axios';
 import {
@@ -170,6 +170,146 @@ export const registerNewUser = async (
     console.error('Error registering new user:', error);
     throw error;
   }
+};
+
+/**
+ * ترقية المتطوع إلى متطوع مشرف
+ */
+export const upgradeToSupervisor = async (
+  phoneNumber: string,
+  resourceDetails: { resourceType: string; capacity: string; location: string; availability: string }
+) => {
+  try {
+    const userRef = doc(db, 'users', phoneNumber);
+    await setDoc(userRef, { isSupervisor: true, supervisorResources: resourceDetails }, { merge: true });
+
+    const volunteerRef = doc(db, 'volunteers', phoneNumber);
+    await setDoc(volunteerRef, { isSupervisor: true, supervisorResources: resourceDetails }, { merge: true });
+
+    return true;
+  } catch (error) {
+    console.error('Error upgrading to supervisor:', error);
+    throw error;
+  }
+};
+
+/**
+ * تقديم طلب ترقية لمشرف (قيد المراجعة)
+ */
+export const submitSupervisorRequest = async (
+  phoneNumber: string,
+  requestData: any
+) => {
+  try {
+    const requestRef = doc(db, 'supervisor_requests', phoneNumber);
+    await setDoc(requestRef, {
+      ...requestData,
+      phoneNumber,
+      status: 'pending',
+      createdAt: serverTimestamp(),
+    });
+
+    const userRef = doc(db, 'users', phoneNumber);
+    await setDoc(userRef, { hasPendingUpgrade: true }, { merge: true });
+
+    const volunteerRef = doc(db, 'volunteers', phoneNumber);
+    await setDoc(volunteerRef, { hasPendingUpgrade: true }, { merge: true });
+
+    return true;
+  } catch (error) {
+    console.error('Error submitting supervisor request:', error);
+    throw error;
+  }
+};
+
+/**
+ * الاشتراك اللحظي في تحديثات حساب المستخدم (ترقية لمشرف، اعتماد جمعية، إلخ)
+ */
+export const subscribeToUserProfile = (
+  phoneNumber: string,
+  role: string,
+  onUpdate: (updatedUser: Partial<AuthUser>) => void
+) => {
+  if (!phoneNumber) return () => {};
+
+  const cleanPhone = phoneNumber.trim();
+  const unsubs: (() => void)[] = [];
+
+  if (role === 'organization') {
+    const orgRef = doc(db, 'organizations', cleanPhone);
+    const unsub = onSnapshot(orgRef, (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        onUpdate({
+          name: data.fullName || data.organizationName,
+          wilaya: data.wilaya ? String(data.wilaya) : undefined,
+          commune: data.commune,
+          isActive: data.status === 'approved',
+        });
+      }
+    });
+    unsubs.push(unsub);
+  } else {
+    // 1. Volunteer Doc Listener
+    const volRef = doc(db, 'volunteers', cleanPhone);
+    const unsubVol = onSnapshot(volRef, (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        onUpdate({
+          name: data.fullName,
+          wilaya: data.wilaya ? String(data.wilaya) : undefined,
+          commune: data.commune,
+          isSupervisor: data.isSupervisor === true,
+          hasPendingUpgrade: data.hasPendingUpgrade === true,
+          supervisorResources: data.supervisorResources,
+        });
+      }
+    });
+    unsubs.push(unsubVol);
+
+    // 2. Users Doc Listener (to catch changes made to users collection directly)
+    const userRef = doc(db, 'users', cleanPhone);
+    const unsubUser = onSnapshot(userRef, (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data.isSupervisor !== undefined || data.hasPendingUpgrade !== undefined) {
+          onUpdate({
+            isSupervisor: data.isSupervisor === true,
+            hasPendingUpgrade: data.hasPendingUpgrade === true,
+            supervisorResources: data.supervisorResources,
+          });
+        }
+      }
+    });
+    unsubs.push(unsubUser);
+
+    // 3. Supervisor Request Listener (if dashboard accepts by updating supervisor_requests/{phone})
+    const reqRef = doc(db, 'supervisor_requests', cleanPhone);
+    const unsubReq = onSnapshot(reqRef, (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data.status === 'approved') {
+          onUpdate({
+            isSupervisor: true,
+            hasPendingUpgrade: false,
+          });
+        } else if (data.status === 'pending') {
+          onUpdate({
+            hasPendingUpgrade: true,
+          });
+        } else if (data.status === 'rejected') {
+          onUpdate({
+            hasPendingUpgrade: false,
+          });
+        }
+      }
+    });
+    unsubs.push(unsubReq);
+  }
+
+  return () => {
+    unsubs.forEach((unsub) => unsub());
+  };
 };
 
 // ============================================================

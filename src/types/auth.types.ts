@@ -1,6 +1,6 @@
 // ============================================================
 // src/types/auth.types.ts
-// Strict TypeScript types for MAHROUSA Authentication Architecture
+// Strict TypeScript types for Authentication & User Roles
 // ============================================================
 
 export type UserRole = 'volunteer' | 'organization';
@@ -27,45 +27,58 @@ export interface VolunteerSignUpForm {
   phone: string;
   wilaya: string;
   commune: string;
-  skill: VolunteerSkill;
-  password: string;
+  skill: VolunteerSkill | string;
 }
 
 export interface VolunteerLoginForm {
   phone: string;
-  password: string;
+  verificationCode?: string;
 }
 
 export interface OrganizationSignUpForm {
-  orgName: string;
-  orgType: OrganizationType;
-  legalNumber: string;
+  organizationName?: string;
+  orgName?: string;
+  legalNumber?: string;
+  orgType: OrganizationType | string;
+  phone?: string;
   wilaya: string;
   commune: string;
-  managerName: string;
-  managerPhone: string;
+  managerName?: string;
+  managerPhone?: string;
 }
 
 export interface OrganizationLoginForm {
   phone: string;
-  otp: string;
+  verificationCode?: string;
 }
 
 export interface AuthUser {
   id: string;
-  role: UserRole;
-  name: string;
   phone: string;
-  wilaya: string;
+  name: string;
+  fullName?: string;
+  role: UserRole;
   token: string;
-  isActive: boolean;
+  wilaya?: string;
+  commune?: string;
+  skill?: string;
+  orgType?: string;
+  orgName?: string;
+  legalNumber?: string;
+  status?: string;
+  isActive?: boolean;
+  isSupervisor?: boolean;
+  hasPendingUpgrade?: boolean;
+  supervisorResources?: any;
+  teamCount?: number;
 }
+
 
 export type AuthStackParamList = {
   RoleSelection: undefined;
-  VolunteerSignUp: undefined;
   VolunteerLogin: undefined;
-  OrganizationSignUp: undefined;
+  VolunteerSignUp: undefined;
   OrganizationLogin: undefined;
+  OrganizationSignUp: undefined;
   WaitingApproval: undefined;
 };

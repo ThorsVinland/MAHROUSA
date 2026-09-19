@@ -14,6 +14,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { VolunteerTaskItem } from "../types/task.types";
+import { checkAndPromoteBackupVolunteers, cancelVolunteerForNeed } from "./needsService";
 
 /**
  * دالة مساعدة لحساب ساعات التطوع التقديرية بناءً على تاريخ البدء والانتهاء
@@ -32,7 +33,7 @@ const calculateHours = (startDate?: string, endDate?: string): number => {
 };
 
 /**
- * الاشتراك اللحظي في مهام المتطوع المسجلة في Firestore
+ * الاشتراك اللحظي في مهام المتطوع المسجلة في Firestore (الأساسية والاحتياطية)
  */
 export const subscribeToVolunteerTasks = (
   userId: string,
@@ -51,23 +52,41 @@ export const subscribeToVolunteerTasks = (
         snapshot.forEach((docSnap) => {
           const data = docSnap.data();
           const volunteers: string[] = data.volunteers || [];
+          const backupVolunteers: string[] = data.backupVolunteers || [];
           const completedVolunteers: string[] = data.completedVolunteers || [];
           const confirmedAttendance: string[] = data.confirmedAttendance || [];
 
-          // التحقق مما إذا كان المتطوع منضماً لهذه المهمة
-          const isJoined =
+          // التحقق مما إذا كان المتطوع منضماً لهذه المهمة (أساسي أو احتياطي)
+          const isPrimary =
             (userId && volunteers.includes(userId)) ||
             (userPhone && volunteers.includes(userPhone));
 
-          if (isJoined) {
-            const isCompletedByMe =
-              (userId && completedVolunteers.includes(userId)) ||
-              (userPhone && completedVolunteers.includes(userPhone)) ||
-              data.status === "completed";
+          let backupIndex = -1;
+          if (!isPrimary) {
+            if (userId && backupVolunteers.includes(userId)) {
+              backupIndex = backupVolunteers.indexOf(userId);
+            } else if (userPhone && backupVolunteers.includes(userPhone)) {
+              backupIndex = backupVolunteers.indexOf(userPhone);
+            }
+          }
+          const isBackup = backupIndex !== -1;
 
-            const isAttendanceConfirmed =
-              (userId && confirmedAttendance.includes(userId)) ||
-              (userPhone && confirmedAttendance.includes(userPhone));
+          // فحص ترقية دوري إذا وجد احتياطيون
+          if (backupVolunteers.length > 0 && volunteers.length > 0) {
+            checkAndPromoteBackupVolunteers(docSnap.id).catch(() => {});
+          }
+
+          if (isPrimary || isBackup) {
+            const isCompletedByMe = isPrimary
+              ? ((userId && completedVolunteers.includes(userId)) ||
+                 (userPhone && completedVolunteers.includes(userPhone)) ||
+                 data.status === "completed")
+              : false;
+
+            const isAttendanceConfirmed = isPrimary
+              ? ((userId && confirmedAttendance.includes(userId)) ||
+                 (userPhone && confirmedAttendance.includes(userPhone)))
+              : false;
 
             const hours = calculateHours(data.startDate, data.endDate);
 
@@ -78,8 +97,10 @@ export const subscribeToVolunteerTasks = (
               quantity: data.quantity || 1,
               volunteersCount: data.volunteersCount ?? volunteers.length,
               volunteers,
+              backupVolunteers,
               completedVolunteers,
               confirmedAttendance,
+              volunteerRegisteredAt: data.volunteerRegisteredAt || {},
               wilaya: data.wilaya || "",
               wilayaName: data.wilayaName || "",
               locationDetails: data.locationDetails || "",
@@ -93,8 +114,10 @@ export const subscribeToVolunteerTasks = (
               organizationPhone: data.organizationPhone || "",
               status: data.status || "active",
               createdAt: data.createdAt,
-              isCompletedByMe,
+              isCompletedByMe: !!isCompletedByMe,
               isAttendanceConfirmed: !!isAttendanceConfirmed,
+              isBackup,
+              backupRank: isBackup ? backupIndex + 1 : undefined,
               estimatedHours: hours,
             });
           }
@@ -176,7 +199,7 @@ export const toggleTaskAttendance = async (
 };
 
 /**
- * الاعتذار والانسحاب من المهمة وإنقاص عداد المتطوعين في Firestore
+ * الاعتذار والانسحاب من المهمة وترقية أول متطوع احتياطي فوراً
  */
 export const withdrawFromTask = async (
   needId: string,
@@ -187,43 +210,15 @@ export const withdrawFromTask = async (
     throw new Error("بيانات غير مكتملة.");
   }
 
-  const needDocRef = doc(db, "needs", needId);
-
   try {
-    await runTransaction(db, async (transaction) => {
-      const needSnap = await transaction.get(needDocRef);
-      if (!needSnap.exists()) {
-        throw new Error("الاحتياج غير موجود.");
-      }
-
-      const data = needSnap.data();
-      const volunteers: string[] = data.volunteers || [];
-      const currentCount: number = data.volunteersCount ?? volunteers.length;
-
-      const isUserInList =
-        volunteers.includes(userId) || (userPhone && volunteers.includes(userPhone));
-
-      if (!isUserInList) {
-        return;
-      }
-
-      const newCount = Math.max(0, currentCount - 1);
-
-      const toRemove: string[] = [userId];
-      if (userPhone) toRemove.push(userPhone);
-
-      transaction.update(needDocRef, {
-        volunteers: arrayRemove(...toRemove),
-        completedVolunteers: arrayRemove(...toRemove),
-        confirmedAttendance: arrayRemove(...toRemove),
-        volunteersCount: newCount,
-        status: "active",
-      });
-    });
-
-    return { success: true, message: "تم تسجيل اعتذارك وإلغاء المهمة بنجاح." };
+    const result = await cancelVolunteerForNeed(needId, userId);
+    if (userPhone && userPhone !== userId) {
+      await cancelVolunteerForNeed(needId, userPhone).catch(() => {});
+    }
+    return result;
   } catch (error) {
     console.error("withdrawFromTask error:", error);
     throw error;
   }
 };
+

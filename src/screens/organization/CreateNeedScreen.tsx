@@ -15,6 +15,8 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import CustomPhoneInput from '../../components/common/CustomPhoneInput';
@@ -262,7 +264,7 @@ export default function CreateNeedScreen({ navigation }: any) {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom', 'left', 'right']}>
       {/* Header */}
       <View style={styles.header}>
         <View style={{ width: 38 }} />
@@ -272,7 +274,11 @@ export default function CreateNeedScreen({ navigation }: any) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         {/* 1. عنوان الاحتياج */}
         <View style={styles.formGroup}>
           <Text style={styles.label}>عنوان الإعلان / الاحتياج</Text>
@@ -554,18 +560,19 @@ export default function CreateNeedScreen({ navigation }: any) {
       {/* Footer Submit */}
       <View style={styles.footer}>
         <TouchableOpacity
-          style={[styles.submitButton, isSubmitting && { opacity: 0.7 }]}
+          style={styles.submitButton}
           onPress={handleSubmit}
-          disabled={isSubmitting}
           activeOpacity={0.8}
+          disabled={isSubmitting}
         >
           {isSubmitting ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : (
-            <Text style={styles.submitButtonText}>نشر</Text>
+            <Text style={styles.submitButtonText}>نشر الإعلان</Text>
           )}
         </TouchableOpacity>
       </View>
+      </KeyboardAvoidingView>
 
       {/* Wilaya Selection Modal */}
       <Modal visible={isWilayaModalVisible} animationType="slide" onRequestClose={() => setIsWilayaModalVisible(false)}>

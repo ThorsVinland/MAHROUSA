@@ -118,6 +118,28 @@ export default function VerifyOtpScreen({ phoneNumber, flowData, onVerifySuccess
               profile.wilaya = data.wilaya ? String(data.wilaya) : profile.wilaya;
               profile.commune = data.commune || '';
               profile.skill = data.skill || '';
+              profile.isSupervisor = data.isSupervisor === true;
+              profile.hasPendingUpgrade = data.hasPendingUpgrade === true;
+              profile.supervisorResources = data.supervisorResources || null;
+            }
+            // Check users collection as well
+            const uSnap = await getDoc(doc(db, 'users', phoneNumber));
+            if (uSnap.exists()) {
+              const uData = uSnap.data();
+              if (uData.isSupervisor !== undefined) profile.isSupervisor = uData.isSupervisor === true;
+              if (uData.hasPendingUpgrade !== undefined) profile.hasPendingUpgrade = uData.hasPendingUpgrade === true;
+              if (uData.supervisorResources) profile.supervisorResources = uData.supervisorResources;
+            }
+            // Check supervisor_requests collection
+            const sSnap = await getDoc(doc(db, 'supervisor_requests', phoneNumber));
+            if (sSnap.exists()) {
+              const sData = sSnap.data();
+              if (sData.status === 'approved') {
+                profile.isSupervisor = true;
+                profile.hasPendingUpgrade = false;
+              } else if (sData.status === 'pending') {
+                profile.hasPendingUpgrade = true;
+              }
             }
           } catch (e) {
             console.log('Error fetching volunteer data:', e);

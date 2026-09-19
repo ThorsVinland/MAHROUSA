@@ -120,6 +120,10 @@ export const subscribeToAllNeeds = (
             quantity: data.quantity || 1,
             volunteersCount: data.volunteersCount ?? (data.volunteers?.length || 0),
             volunteers: data.volunteers || [],
+            completedVolunteers: data.completedVolunteers || [],
+            confirmedAttendance: data.confirmedAttendance || [],
+            backupVolunteers: data.backupVolunteers || [],
+            volunteerRegisteredAt: data.volunteerRegisteredAt || {},
             wilaya: data.wilaya || '',
             wilayaName: data.wilayaName || '',
             locationDetails: data.locationDetails || '',
@@ -177,6 +181,10 @@ export const subscribeToOrgNeeds = (
             quantity: data.quantity || 1,
             volunteersCount: data.volunteersCount ?? (data.volunteers?.length || 0),
             volunteers: data.volunteers || [],
+            completedVolunteers: data.completedVolunteers || [],
+            confirmedAttendance: data.confirmedAttendance || [],
+            backupVolunteers: data.backupVolunteers || [],
+            volunteerRegisteredAt: data.volunteerRegisteredAt || {},
             wilaya: data.wilaya || '',
             wilayaName: data.wilayaName || '',
             locationDetails: data.locationDetails || '',
@@ -210,18 +218,86 @@ export const subscribeToOrgNeeds = (
 };
 
 /**
- * تسجيل التطوع في الاحتياج بواسطة العميل مع التأكد من عدم اكتمال العدد
- * يزيد العداد بواحد في Firestore لحظياً
+ * فحص تلقائي: إذا مرت ساعة (60 دقيقة) دون تأكيد حضور المتطوع الأساسي،
+ * يتم حذفه تلقائياً وترقية أول متطوع من القائمة الاحتياطية
+ */
+export const checkAndPromoteBackupVolunteers = async (needId: string): Promise<boolean> => {
+  if (!needId) return false;
+  const needDocRef = doc(db, 'needs', needId);
+
+  try {
+    return await runTransaction(db, async (transaction) => {
+      const needSnap = await transaction.get(needDocRef);
+      if (!needSnap.exists()) return false;
+
+      const data = needSnap.data();
+      const volunteers: string[] = data.volunteers || [];
+      const backupVolunteers: string[] = data.backupVolunteers || [];
+      const confirmedAttendance: string[] = data.confirmedAttendance || [];
+      const registeredAtMap: Record<string, number> = data.volunteerRegisteredAt || {};
+
+      if (backupVolunteers.length === 0 || volunteers.length === 0) {
+        return false;
+      }
+
+      const ONE_HOUR_MS = 60 * 60 * 1000; // ساعة واحدة بالملي ثانية (3600000)
+      const now = Date.now();
+
+      // البحث عن متطوع أساسي مسجل لأكثر من ساعة ولم يؤكد الحضور
+      const expiredIndex = volunteers.findIndex((volId) => {
+        const regTime = registeredAtMap[volId] || (data.createdAt?.seconds ? data.createdAt.seconds * 1000 : 0);
+        const isExpired = regTime > 0 && (now - regTime > ONE_HOUR_MS);
+        const isNotConfirmed = !confirmedAttendance.includes(volId);
+        return isExpired && isNotConfirmed;
+      });
+
+      if (expiredIndex === -1) {
+        return false;
+      }
+
+      const expiredVolunteerId = volunteers[expiredIndex];
+      const promotedVolunteerId = backupVolunteers[0];
+      const newBackupList = backupVolunteers.slice(1);
+
+      const newVolunteers = [...volunteers];
+      newVolunteers[expiredIndex] = promotedVolunteerId;
+
+      const newRegisteredAtMap = { ...registeredAtMap };
+      delete newRegisteredAtMap[expiredVolunteerId];
+      newRegisteredAtMap[promotedVolunteerId] = now;
+
+      transaction.update(needDocRef, {
+        volunteers: newVolunteers,
+        backupVolunteers: newBackupList,
+        volunteerRegisteredAt: newRegisteredAtMap,
+      });
+
+      console.log(`Auto-promoted backup volunteer ${promotedVolunteerId} to replace unconfirmed ${expiredVolunteerId}`);
+      return true;
+    });
+  } catch (error) {
+    console.error('checkAndPromoteBackupVolunteers error:', error);
+    return false;
+  }
+};
+
+/**
+ * تسجيل التطوع في الاحتياج:
+ * - إذا كان هناك شواغر: يُسجل كمتطوع أساسي مع بدء مهلة التأكيد (ساعة).
+ * - إذا اكتمل العدد: يُسجل في القائمة الاحتياطية ليتم إدراجه تلقائياً عند غياب تأكيد أي متطوع.
  */
 export const volunteerToNeed = async (
   needId: string,
   userId: string
-): Promise<{ success: boolean; message: string }> => {
+): Promise<{ success: boolean; isBackup?: boolean; message: string }> => {
   if (!needId || !userId) {
     throw new Error('بيانات التطوع غير مكتملة.');
   }
 
   const needDocRef = doc(db, 'needs', needId);
+
+  // أولاً نقوم بفحص تلقائي لأي متطوعين انتهت مهلتهم
+  await checkAndPromoteBackupVolunteers(needId).catch(() => {});
 
   try {
     const result = await runTransaction(db, async (transaction) => {
@@ -232,29 +308,51 @@ export const volunteerToNeed = async (
 
       const data = needSnap.data();
       const volunteers: string[] = data.volunteers || [];
+      const backupVolunteers: string[] = data.backupVolunteers || [];
       const quantity: number = data.quantity || 1;
-      const currentCount: number = data.volunteersCount ?? volunteers.length;
+      const currentCount: number = volunteers.length;
+      const registeredAtMap: Record<string, number> = data.volunteerRegisteredAt || {};
 
-      // تحقق إن كان المستخدم مسجل بالفعل
+      // التحقق من التسجيل المسبق
       if (volunteers.includes(userId)) {
-        return { success: false, message: 'أنت مسجل بالفعل في هذا الاحتياج.' };
+        return { success: false, message: 'أنت مسجل بالفعل في هذا الاحتياج كمتطوع أساسي.' };
+      }
+      if (backupVolunteers.includes(userId)) {
+        return { success: false, isBackup: true, message: 'أنت مسجل بالفعل في القائمة الاحتياطية لهذا الاحتياج.' };
       }
 
-      // تحقق إن كان العدد قد اكتمل
-      if (currentCount >= quantity) {
-        throw new Error('عذراً، العدد المطلوب لهذا الاحتياج قد اكتمل بالفعل.');
+      const now = Date.now();
+
+      // الحالة 1: يوجد شواغر في القائمة الأساسية
+      if (currentCount < quantity) {
+        const newCount = currentCount + 1;
+        const newVolunteers = [...volunteers, userId];
+        const newMap = { ...registeredAtMap, [userId]: now };
+
+        transaction.update(needDocRef, {
+          volunteers: newVolunteers,
+          volunteersCount: newCount,
+          volunteerRegisteredAt: newMap,
+          status: 'active',
+        });
+
+        return {
+          success: true,
+          isBackup: false,
+          message: 'تم تسجيل تطوعك بنجاح! يرجى تأكيد حضورك الميداني خلال ساعة.',
+        };
       }
 
-      const newCount = currentCount + 1;
-      const isCompleted = newCount >= quantity;
-
+      // الحالة 2: القائمة الأساسية مكتملة -> التسجيل في القائمة الاحتياطية
       transaction.update(needDocRef, {
-        volunteers: arrayUnion(userId),
-        volunteersCount: increment(1),
-        status: isCompleted ? 'completed' : 'active',
+        backupVolunteers: arrayUnion(userId),
       });
 
-      return { success: true, message: 'تم تسجيل تطوعك بنجاح! شكراً لك.' };
+      return {
+        success: true,
+        isBackup: true,
+        message: 'تم تسجيلك بنجاح في القائمة الاحتياطية! سيتم إضافتك تلقائياً كمتطوع أساسي إذا لم يؤكد أحد المتطوعين حضوره خلال ساعة.',
+      };
     });
 
     return result;
@@ -265,7 +363,8 @@ export const volunteerToNeed = async (
 };
 
 /**
- * إلغاء التطوع في الاحتياج
+ * إلغاء التطوع أو الانسحاب من الاحتياج:
+ * مع ترقية أول متطوع من القائمة الاحتياطية فوراً
  */
 export const cancelVolunteerForNeed = async (
   needId: string,
@@ -286,26 +385,62 @@ export const cancelVolunteerForNeed = async (
 
       const data = needSnap.data();
       const volunteers: string[] = data.volunteers || [];
-      const currentCount: number = data.volunteersCount ?? volunteers.length;
+      const backupVolunteers: string[] = data.backupVolunteers || [];
+      const registeredAtMap: Record<string, number> = data.volunteerRegisteredAt || {};
 
-      if (!volunteers.includes(userId)) {
+      // الحالة 1: المستخدم في القائمة الاحتياطية
+      if (backupVolunteers.includes(userId)) {
+        transaction.update(needDocRef, {
+          backupVolunteers: arrayRemove(userId),
+        });
         return;
       }
 
-      const newCount = Math.max(0, currentCount - 1);
+      // الحالة 2: المستخدم في القائمة الأساسية
+      if (volunteers.includes(userId)) {
+        let newVolunteers = volunteers.filter((id) => id !== userId);
+        let newBackupList = [...backupVolunteers];
+        const newRegisteredAtMap = { ...registeredAtMap };
+        delete newRegisteredAtMap[userId];
 
-      transaction.update(needDocRef, {
-        volunteers: arrayRemove(userId),
-        volunteersCount: newCount,
-        status: 'active',
-      });
+        // ترقية فوري لأول متطوع احتياطي
+        if (newBackupList.length > 0) {
+          const promotedId = newBackupList.shift()!;
+          newVolunteers.push(promotedId);
+          newRegisteredAtMap[promotedId] = Date.now();
+        }
+
+        transaction.update(needDocRef, {
+          volunteers: newVolunteers,
+          backupVolunteers: newBackupList,
+          confirmedAttendance: arrayRemove(userId),
+          completedVolunteers: arrayRemove(userId),
+          volunteerRegisteredAt: newRegisteredAtMap,
+          volunteersCount: newVolunteers.length,
+          status: 'active',
+        });
+      }
     });
 
-    return { success: true, message: 'تم إلغاء التطوع بنجاح.' };
+    return { success: true, message: 'تم إلغاء التسجيل بنجاح.' };
   } catch (error) {
     console.error('cancelVolunteerForNeed error:', error);
     throw error;
   }
+};
+
+/**
+ * تأكيد الحضور الميداني للاحتياج (لتجنب الاستبدال بمتطوع احتياطي بعد انقضاء مهلة الساعة)
+ */
+export const confirmAttendanceForNeed = async (
+  needId: string,
+  userId: string
+): Promise<void> => {
+  if (!needId || !userId) return;
+  const needDocRef = doc(db, 'needs', needId);
+  await updateDoc(needDocRef, {
+    confirmedAttendance: arrayUnion(userId),
+  });
 };
 
 /**
@@ -315,3 +450,4 @@ export const deleteNeed = async (needId: string): Promise<void> => {
   const needDocRef = doc(db, 'needs', needId);
   await deleteDoc(needDocRef);
 };
+

@@ -10,6 +10,7 @@ import VerifyOtpScreen from '../screens/auth/VerifyOtpScreen';
 import VolunteerMainScreen from '../screens/main/VolunteerMainScreen';
 import OrganizationMainScreen from '../screens/main/OrganizationMainScreen';
 import { useAuthStore } from '../store/authStore';
+import { subscribeToUserProfile } from '../services/authService';
 
 export default function RootNavigator() { 
   const [currentScreen, setCurrentScreen] = useState('Loading'); // Loading, Splash, SelectRole, Register, Login, VerifyOTP, VolunteerMain, OrganizationMain
@@ -20,6 +21,32 @@ export default function RootNavigator() {
   
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const user = useAuthStore((state) => state.user);
+
+  // Real-time synchronization with Firestore for user profile, supervisor upgrade, and approval status
+  useEffect(() => {
+    if (isAuthenticated && user?.phone) {
+      const unsub = subscribeToUserProfile(user.phone, user.role || 'volunteer', (updatedFields) => {
+        const currentUser = useAuthStore.getState().user;
+        if (currentUser) {
+          let hasChanged = false;
+          for (const key in updatedFields) {
+            if (updatedFields[key] !== undefined && currentUser[key] !== updatedFields[key]) {
+              hasChanged = true;
+              break;
+            }
+          }
+          if (hasChanged) {
+            const mergedUser = { ...currentUser, ...updatedFields };
+            useAuthStore.getState().setUser(mergedUser);
+            AsyncStorage.setItem('current_user', JSON.stringify(mergedUser)).catch(() => {});
+          }
+        }
+      });
+      return () => {
+        if (typeof unsub === 'function') unsub();
+      };
+    }
+  }, [isAuthenticated, user?.phone, user?.role]);
 
   useEffect(() => {
     const checkFirstLaunch = async () => {

@@ -22,7 +22,7 @@ const SLIDES = [
     title: 'مرحباً بك في محروسة',
     subtitle: 'المنصة المتكاملة لتمكين العمل التطوعي والدعم المجتمعي',
     description: 'نجمع بين المتطوعين الشغوفين والجمعيات والمؤسسات لبناء أثر مستدام ومجتمع متكاتف.',
-    image: require('../../assets/images/1.png'),
+    image: require('../../assets/images/1.jpg'),
     badge: 'محروسة',
   },
   {
@@ -30,7 +30,7 @@ const SLIDES = [
     title: 'استكشف الفرص والمبادرات',
     subtitle: 'تطوّع واصنع الفارق في منطقتك',
     description: 'تصفح المبادرات المتاحة بالقرب منك، واشترك بنقرة واحدة في الفعاليات التي تناسب مهاراتك وشغفك.',
-    image: require('../../assets/images/2.png'),
+    image: require('../../assets/images/2.jpg'),
     badge: 'للمتطوعين',
   },
   {
@@ -38,7 +38,7 @@ const SLIDES = [
     title: 'إدارة وتنسيق الجمعيات',
     subtitle: 'حلول عملية ومبتكرة للمؤسسات',
     description: 'أطلق مبادراتك الخيرية، استقطب الكفاءات التطوعية، وتابع تقارير الإنجاز بكل يسر وسهولة.',
-    image: require('../../assets/images/3.png'),
+    image: require('../../assets/images/3.jpg'),
     badge: 'للجمعيات',
   },
   {
@@ -46,7 +46,7 @@ const SLIDES = [
     title: 'ابدأ مسيرتك المعطاءة اليوم',
     subtitle: 'انضم لشبكة محروسة المجتمعية',
     description: 'سجل حسابك في ثوانٍ، واختر دورك كمتطوع أو كجمعية، وكن جزءاً من مسيرة العطاء والتمكين.',
-    image: require('../../assets/images/4.png'),
+    image: require('../../assets/images/4.jpg'),
     badge: 'انطلق الآن',
   },
 ];

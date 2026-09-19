@@ -15,10 +15,13 @@ import HomeScreen from "../screens/volunteer/HomeScreen";
 import MapScreen from "../screens/volunteer/MapScreen";
 import MyTasksScreen from "../screens/volunteer/MyTasksScreen";
 import ProfileScreen from "../screens/volunteer/ProfileScreen";
+import SupervisorDashboardScreen from "../screens/volunteer/SupervisorDashboardScreen";
 import NeedDetailsScreen from "../screens/volunteer/NeedDetailsScreen";
 import TaskTrackingScreen from "../screens/volunteer/TaskTrackingScreen";
 import SkillsSelectionScreen from "../screens/volunteer/SkillsSelectionScreen";
 import RatingScreen from "../screens/volunteer/RatingScreen";
+import SupervisorTeamScreen from "../screens/volunteer/SupervisorTeamScreen";
+import SupervisorUpgradeScreen from "../screens/volunteer/SupervisorUpgradeScreen";
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -29,10 +32,12 @@ function VolunteerTabBar({ state, navigation }) {
   if (currentRouteName === "VolunteerMap") activeTab = "map";
   else if (currentRouteName === "VolunteerTasks") activeTab = "tasks";
   else if (currentRouteName === "VolunteerProfile") activeTab = "profile";
+  else if (currentRouteName === "SupervisorDashboard") activeTab = "supervisor";
 
   const user = useAuthStore((s) => s.user);
   const currentUserId = user?.id || user?.phone || "user_guest";
   const userPhone = user?.phone;
+  const isSupervisor = user?.isSupervisor === true;
   const [activeTasksCount, setActiveTasksCount] = useState(0);
 
   useEffect(() => {
@@ -55,6 +60,7 @@ function VolunteerTabBar({ state, navigation }) {
     else if (tab === "map") navigation.navigate("VolunteerMap");
     else if (tab === "tasks") navigation.navigate("VolunteerTasks");
     else if (tab === "profile") navigation.navigate("VolunteerProfile");
+    else if (tab === "supervisor") navigation.navigate("SupervisorDashboard");
   };
 
   return (
@@ -62,6 +68,7 @@ function VolunteerTabBar({ state, navigation }) {
       activeTab={activeTab}
       onTabChange={handleTabChange}
       tasksBadgeCount={activeTasksCount}
+      isSupervisor={isSupervisor}
     />
   );
 }
@@ -77,6 +84,7 @@ function VolunteerTabs() {
       <Tab.Screen name="VolunteerHome" component={HomeScreen} />
       <Tab.Screen name="VolunteerMap" component={MapScreen} />
       <Tab.Screen name="VolunteerTasks" component={MyTasksScreen} />
+      <Tab.Screen name="SupervisorDashboard" component={SupervisorDashboardScreen} />
       <Tab.Screen name="VolunteerProfile" component={ProfileScreen} />
     </Tab.Navigator>
   );
@@ -97,6 +105,8 @@ export default function VolunteerNavigator({ onLogout }) {
       <Stack.Screen name="TaskTracking" component={TaskTrackingScreen} />
       <Stack.Screen name="SkillsSelection" component={SkillsSelectionScreen} />
       <Stack.Screen name="Rating" component={RatingScreen} />
+      <Stack.Screen name="SupervisorTeam" component={SupervisorTeamScreen} />
+      <Stack.Screen name="SupervisorUpgrade" component={SupervisorUpgradeScreen} />
     </Stack.Navigator>
   );
 }

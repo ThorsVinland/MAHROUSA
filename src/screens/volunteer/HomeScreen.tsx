@@ -291,7 +291,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   }, [wilayaSearch]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
       <TopBar
         notificationCount={3}
         wilaya={userWilayaInfo.name}

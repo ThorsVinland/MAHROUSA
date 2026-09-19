@@ -77,6 +77,8 @@ export const VolunteerTaskCard: React.FC<Props> = ({
 
   const borderColor = task.isCompletedByMe
     ? (Colors.success || "#27AE60")
+    : task.isBackup
+    ? "#8B5CF6"
     : task.priority === "urgent"
     ? (Colors.urgent || "#E74C3C")
     : (Colors.mainBlue || "#2E86C1");
@@ -86,8 +88,15 @@ export const VolunteerTaskCard: React.FC<Props> = ({
       {/* 1. Header Badges: Priority + Status + Need Type */}
       <View style={styles.headerRow}>
         <View style={styles.badgesContainer}>
-          {/* Status Badge */}
-          {task.isCompletedByMe ? (
+          {/* Status / Backup Badge */}
+          {task.isBackup ? (
+            <View style={[styles.badge, styles.backupBadge]}>
+              <Ionicons name="shield-checkmark" size={13} color="#8B5CF6" />
+              <Text style={styles.backupBadgeText}>
+                قائمة الاحتياط (رقم {task.backupRank || 1})
+              </Text>
+            </View>
+          ) : task.isCompletedByMe ? (
             <View style={[styles.badge, styles.completedBadge]}>
               <Ionicons name="checkmark-circle" size={13} color="#27AE60" />
               <Text style={styles.completedBadgeText}>مكتملة بنجاح</Text>
@@ -172,8 +181,15 @@ export const VolunteerTaskCard: React.FC<Props> = ({
         </View>
       </View>
 
-      {/* 5. Attendance Confirmation Toggle (Active tasks only) */}
-      {!task.isCompletedByMe && (
+      {/* 5. Attendance Confirmation Toggle / Backup Notice */}
+      {task.isBackup ? (
+        <View style={styles.backupNoticeBox}>
+          <Ionicons name="shield-outline" size={16} color="#8B5CF6" />
+          <Text style={styles.backupNoticeText}>
+            أنت في قائمة الاحتياط (الترتيب: {task.backupRank || 1}). سيتم ترقيتك تلقائياً إذا شغر مكان أو لم يؤكد متطوع أساسي حضوره خلال ساعة.
+          </Text>
+        </View>
+      ) : !task.isCompletedByMe && (
         <TouchableOpacity
           style={[
             styles.attendanceToggle,
@@ -187,16 +203,18 @@ export const VolunteerTaskCard: React.FC<Props> = ({
             size={18}
             color={task.isAttendanceConfirmed ? "#27AE60" : Colors.textSecondary}
           />
-          <Text
-            style={[
-              styles.attendanceToggleText,
-              task.isAttendanceConfirmed && styles.attendanceToggleTextActive,
-            ]}
-          >
-            {task.isAttendanceConfirmed
-              ? "✓ تم تأكيد حضورك الميداني"
-              : "اضغط لتأكيد جاهزيتك للحضور"}
-          </Text>
+          <View style={{ flex: 1 }}>
+            <Text
+              style={[
+                styles.attendanceToggleText,
+                task.isAttendanceConfirmed && styles.attendanceToggleTextActive,
+              ]}
+            >
+              {task.isAttendanceConfirmed
+                ? "✓ تم تأكيد حضورك الميداني"
+                : "اضغط لتأكيد جاهزيتك للحضور (مهلة ساعة)"}
+            </Text>
+          </View>
         </TouchableOpacity>
       )}
 
@@ -209,6 +227,16 @@ export const VolunteerTaskCard: React.FC<Props> = ({
               بارك الله فيك! تم إنجاز المهمة وحساب الأثر
             </Text>
           </View>
+        ) : task.isBackup ? (
+          <TouchableOpacity
+            style={[styles.actionBtn, styles.withdrawBtn, { flex: 1 }]}
+            onPress={() => onWithdraw(task)}
+            activeOpacity={0.85}
+            disabled={isLoading}
+          >
+            <Ionicons name="close-circle-outline" size={15} color="#E74C3C" />
+            <Text style={styles.withdrawBtnText}>الانسحاب من القائمة الاحتياطية</Text>
+          </TouchableOpacity>
         ) : (
           <>
             {/* Mark as Completed */}
@@ -238,6 +266,7 @@ export const VolunteerTaskCard: React.FC<Props> = ({
     </View>
   );
 };
+
 
 const getStyles = (Colors: any, isDarkMode: boolean) =>
   StyleSheet.create({
@@ -455,4 +484,32 @@ const getStyles = (Colors: any, isDarkMode: boolean) =>
       fontWeight: "800",
       color: "#27AE60",
     },
+    backupBadge: {
+      backgroundColor: isDarkMode ? "#2D1B4E" : "#F3E8FF",
+    },
+    backupBadgeText: {
+      fontSize: 11,
+      fontWeight: "800",
+      color: "#8B5CF6",
+    },
+    backupNoticeBox: {
+      flexDirection: "row-reverse",
+      alignItems: "center",
+      backgroundColor: isDarkMode ? "#241838" : "#F5F3FF",
+      borderRadius: 12,
+      padding: 10,
+      gap: 8,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: isDarkMode ? "#4C1D95" : "#DDD6FE",
+    },
+    backupNoticeText: {
+      fontSize: 12,
+      fontWeight: "700",
+      color: "#8B5CF6",
+      flex: 1,
+      textAlign: "right",
+      lineHeight: 18,
+    },
   });
+

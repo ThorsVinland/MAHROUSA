@@ -14,10 +14,12 @@ interface BottomNavBarProps {
   activeTab: HomeTabType;
   onTabChange?: (tab: HomeTabType) => void;
   tasksBadgeCount?: number;
+  isSupervisor?: boolean;
   labels?: {
     home: string;
     map: string;
     tasks: string;
+    supervisor: string;
     profile: string;
   };
 }
@@ -25,11 +27,13 @@ interface BottomNavBarProps {
 export const BottomNavBar: React.FC<BottomNavBarProps> = ({
   activeTab,
   onTabChange,
-  tasksBadgeCount = 2,
+  tasksBadgeCount = 0,
+  isSupervisor = false,
   labels = {
     home: 'الرئيسية',
     map: 'الخريطة',
     tasks: 'مهامي',
+    supervisor: 'لوحتي',
     profile: 'حسابي',
   },
 }) => {
@@ -120,7 +124,31 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
           </Text>
         </TouchableOpacity>
 
-        {/* TAB 4: Profile / حسابي (Leftmost in RTL) */}
+        {/* TAB 4: Supervisor (Optional) */}
+        {isSupervisor && (
+          <TouchableOpacity
+            style={styles.tabItem}
+            onPress={() => onTabChange?.('supervisor')}
+            activeOpacity={0.8}
+          >
+            {activeTab === 'supervisor' && <View style={styles.activeIndicator} />}
+            <Ionicons
+              name={activeTab === 'supervisor' ? 'speedometer' : 'speedometer-outline'}
+              size={23}
+              color={activeTab === 'supervisor' ? Colors.mainBlue : Colors.placeholder}
+            />
+            <Text
+              style={[
+                styles.tabLabel,
+                activeTab === 'supervisor' && styles.activeTabLabel,
+              ]}
+            >
+              {labels.supervisor}
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {/* TAB 5: Profile / حسابي (Leftmost in RTL) */}
         <TouchableOpacity
           style={styles.tabItem}
           onPress={() => onTabChange?.('profile')}

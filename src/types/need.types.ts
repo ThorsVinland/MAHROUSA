@@ -37,6 +37,8 @@ export interface NeedItem {
   organizationPhone: string; // رقم هاتف التواصل للجمعية
   completedVolunteers?: string[]; // معرّفات المتطوعين الذين أتموا المهمة
   confirmedAttendance?: string[]; // معرّفات المتطوعين الذين أكدوا الحضور
+  backupVolunteers?: string[]; // قائمة المتطوعين الاحتياطيين
+  volunteerRegisteredAt?: Record<string, number>; // توقيت تسجيل كل متطوع أساسي لحساب مهلة التأكيد (ساعة)
   status: 'active' | 'completed' | 'cancelled';
   createdAt?: any;
 }

@@ -4,26 +4,21 @@
 // ============================================================
 
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/authStore';
 import { useTheme } from '../../context/ThemeContext';
 import { getWilayaInfo } from '../../utils/wilayaHelper';
 import { useAlert } from '../../context/AlertContext';
+import { useNavigation } from '@react-navigation/native';
 
 export default function ProfileScreen() {
   const { user, logout } = useAuthStore();
   const { isDarkMode, toggleTheme, colors: Colors } = useTheme();
   const styles = React.useMemo(() => getStyles(Colors), [Colors]);
   const { showAlert } = useAlert();
-
-  // Upgrade Modal State
-  const [isUpgradeModalVisible, setIsUpgradeModalVisible] = useState(false);
-  const [resourceType, setResourceType] = useState('');
-  const [capacity, setCapacity] = useState('');
-  const [location, setLocation] = useState('');
-  const [availability, setAvailability] = useState('');
+  const navigation = useNavigation<any>();
 
   const handleLogout = () => {
     showAlert(
@@ -41,7 +36,7 @@ export default function ProfileScreen() {
   }, [user?.wilaya]);
 
   const userName = user?.name || user?.fullName || 'مستخدم غير معروف';
-  const roleName = user?.role === 'volunteer' ? 'متطوع مسجل' : user?.role || 'متطوع';
+  const roleName = user?.isSupervisor ? 'متطوع مشرف' : (user?.role === 'volunteer' ? 'متطوع مسجل' : user?.role || 'متطوع');
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -67,6 +62,15 @@ export default function ProfileScreen() {
               حساب مفعل في محروسة ✓
             </Text>
           </View>
+          
+          {user?.isSupervisor && (
+            <View style={[styles.statusBadge, { backgroundColor: '#E0F2FE', marginTop: 8 }]}>
+              <Ionicons name="speedometer" size={15} color={Colors.mainBlue} />
+              <Text style={[styles.statusBadgeText, { color: Colors.mainBlue }]}>
+                حساب متطوع مشرف
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Quick Stats Grid */}
@@ -111,10 +115,11 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>الإعدادات والحساب</Text>
 
-          {user?.role === 'volunteer' && (
+          {/* Upgrade Card (Hide if already a supervisor) */}
+          {!user?.isSupervisor && !user?.hasPendingUpgrade && (
             <TouchableOpacity 
               style={[styles.actionCard, styles.upgradeCard]} 
-              onPress={() => setIsUpgradeModalVisible(true)} 
+              onPress={() => navigation.navigate('SupervisorUpgrade')} 
               activeOpacity={0.7}
             >
               <View style={styles.actionLeft}>
@@ -128,6 +133,20 @@ export default function ProfileScreen() {
               </View>
               <Ionicons name="chevron-back" size={20} color={Colors.placeholder} />
             </TouchableOpacity>
+          )}
+
+          {user?.hasPendingUpgrade && !user?.isSupervisor && (
+            <View style={[styles.actionCard, { backgroundColor: '#F3F4F6', borderWidth: 1, borderColor: '#E5E7EB' }]}>
+              <View style={styles.actionLeft}>
+                <View style={[styles.upgradeIconBox, { backgroundColor: '#9CA3AF' }]}>
+                  <Ionicons name="time-outline" size={24} color="#FFFFFF" />
+                </View>
+                <View>
+                  <Text style={[styles.actionText, { color: '#4B5563', fontWeight: '800' }]}>طلب الترقية قيد المراجعة</Text>
+                  <Text style={styles.actionSubText}>سيتم الرد في غضون 24 ساعة</Text>
+                </View>
+              </View>
+            </View>
           )}
 
           <TouchableOpacity style={[styles.actionCard, { marginTop: 12 }]} onPress={toggleTheme} activeOpacity={0.7}>
@@ -152,85 +171,6 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
-
-      {/* Upgrade to Supervisor Modal */}
-      <Modal
-        visible={isUpgradeModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setIsUpgradeModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>طلب ترقية إلى متطوع مشرف</Text>
-              <TouchableOpacity onPress={() => setIsUpgradeModalVisible(false)} style={styles.closeBtn}>
-                <Ionicons name="close" size={24} color={Colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView contentContainerStyle={styles.formContainer} showsVerticalScrollIndicator={false}>
-              <Text style={styles.formDesc}>
-                هل تملك موارد إضافية تود التطوع بها؟ املأ التفاصيل أدناه ليتم ترقيتك إلى مشرف وربطك مع الجمعيات التي تحتاج مواردك.
-              </Text>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>نوع المورد (مثال: شاحنة، مقر تخزين، خبرة)</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="أدخل نوع المورد..."
-                  placeholderTextColor={Colors.placeholder}
-                  value={resourceType}
-                  onChangeText={setResourceType}
-                  textAlign="right"
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>السعة والتفاصيل (مثال: شاحنة بوزن 10 طن)</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="أدخل تفاصيل وسعة المورد..."
-                  placeholderTextColor={Colors.placeholder}
-                  value={capacity}
-                  onChangeText={setCapacity}
-                  textAlign="right"
-                  multiline
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>الموقع (الولاية والبلدية)</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="مثال: وهران - السانية..."
-                  placeholderTextColor={Colors.placeholder}
-                  value={location}
-                  onChangeText={setLocation}
-                  textAlign="right"
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>أوقات التفرغ (الفترة المتاحة)</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="مثال: كل أيام الأسبوع صباحاً..."
-                  placeholderTextColor={Colors.placeholder}
-                  value={availability}
-                  onChangeText={setAvailability}
-                  textAlign="right"
-                />
-              </View>
-
-              <TouchableOpacity style={styles.submitBtn} onPress={() => {}} activeOpacity={0.8}>
-                <Text style={styles.submitBtnText}>تقديم الطلب</Text>
-              </TouchableOpacity>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
     </SafeAreaView>
   );
 }

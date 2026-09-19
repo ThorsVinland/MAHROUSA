@@ -72,7 +72,7 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
   }, [filter, allMarkers]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity

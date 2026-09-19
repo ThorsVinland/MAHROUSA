@@ -46,4 +46,4 @@ export interface MapMarker {
   type: 'crisis' | 'resource' | 'meetup';
 }
 
-export type HomeTabType = 'home' | 'map' | 'tasks' | 'profile';
+export type HomeTabType = 'home' | 'map' | 'tasks' | 'profile' | 'supervisor';

@@ -10,6 +10,8 @@ export type TaskTabType = "active" | "completed" | "all";
 export interface VolunteerTaskItem extends NeedItem {
   isCompletedByMe: boolean;
   isAttendanceConfirmed: boolean;
+  isBackup?: boolean;
+  backupRank?: number;
   estimatedHours: number;
 }
 

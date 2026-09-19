@@ -196,7 +196,7 @@ export default function MyTasksScreen({ navigation }: Props) {
   }, [navigation]);
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+    <SafeAreaView style={styles.safeArea} edges={["top", "bottom", "left", "right"]}>
       {/* Top Header */}
       <View style={styles.header}>
         <View style={styles.headerTitles}>
