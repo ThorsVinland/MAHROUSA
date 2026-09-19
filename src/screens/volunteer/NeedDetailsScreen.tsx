@@ -276,7 +276,7 @@ export default function NeedDetailsScreen({ navigation, route }: Props) {
         [
           { text: 'إلغاء', style: 'cancel' },
           {
-            text: 'تسجيل كمتطوع احتياطي',
+            text: 'تأكيد',
             style: 'default',
             onPress: async () => {
               try {
