@@ -3,8 +3,8 @@
 // Volunteer Profile Screen with user info and logout
 // ============================================================
 
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/authStore';
@@ -17,6 +17,13 @@ export default function ProfileScreen() {
   const { isDarkMode, toggleTheme, colors: Colors } = useTheme();
   const styles = React.useMemo(() => getStyles(Colors), [Colors]);
   const { showAlert } = useAlert();
+
+  // Upgrade Modal State
+  const [isUpgradeModalVisible, setIsUpgradeModalVisible] = useState(false);
+  const [resourceType, setResourceType] = useState('');
+  const [capacity, setCapacity] = useState('');
+  const [location, setLocation] = useState('');
+  const [availability, setAvailability] = useState('');
 
   const handleLogout = () => {
     showAlert(
@@ -104,7 +111,26 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>الإعدادات والحساب</Text>
 
-          <TouchableOpacity style={styles.actionCard} onPress={toggleTheme} activeOpacity={0.7}>
+          {user?.role === 'volunteer' && (
+            <TouchableOpacity 
+              style={[styles.actionCard, styles.upgradeCard]} 
+              onPress={() => setIsUpgradeModalVisible(true)} 
+              activeOpacity={0.7}
+            >
+              <View style={styles.actionLeft}>
+                <View style={styles.upgradeIconBox}>
+                  <Ionicons name="arrow-up-circle-outline" size={24} color="#FFFFFF" />
+                </View>
+                <View>
+                  <Text style={[styles.actionText, { color: Colors.mainBlue, fontWeight: '800' }]}>طلب ترقية لمشرف</Text>
+                  <Text style={styles.actionSubText}>تطوع بمواردك (شاحنة، مقر تخزين...)</Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-back" size={20} color={Colors.placeholder} />
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity style={[styles.actionCard, { marginTop: 12 }]} onPress={toggleTheme} activeOpacity={0.7}>
             <View style={styles.actionLeft}>
               <Ionicons name={isDarkMode ? 'sunny' : 'moon'} size={20} color={Colors.mainBlue} />
               <Text style={styles.actionText}>
@@ -126,6 +152,85 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Upgrade to Supervisor Modal */}
+      <Modal
+        visible={isUpgradeModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setIsUpgradeModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>طلب ترقية إلى متطوع مشرف</Text>
+              <TouchableOpacity onPress={() => setIsUpgradeModalVisible(false)} style={styles.closeBtn}>
+                <Ionicons name="close" size={24} color={Colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView contentContainerStyle={styles.formContainer} showsVerticalScrollIndicator={false}>
+              <Text style={styles.formDesc}>
+                هل تملك موارد إضافية تود التطوع بها؟ املأ التفاصيل أدناه ليتم ترقيتك إلى مشرف وربطك مع الجمعيات التي تحتاج مواردك.
+              </Text>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>نوع المورد (مثال: شاحنة، مقر تخزين، خبرة)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="أدخل نوع المورد..."
+                  placeholderTextColor={Colors.placeholder}
+                  value={resourceType}
+                  onChangeText={setResourceType}
+                  textAlign="right"
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>السعة والتفاصيل (مثال: شاحنة بوزن 10 طن)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="أدخل تفاصيل وسعة المورد..."
+                  placeholderTextColor={Colors.placeholder}
+                  value={capacity}
+                  onChangeText={setCapacity}
+                  textAlign="right"
+                  multiline
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>الموقع (الولاية والبلدية)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="مثال: وهران - السانية..."
+                  placeholderTextColor={Colors.placeholder}
+                  value={location}
+                  onChangeText={setLocation}
+                  textAlign="right"
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>أوقات التفرغ (الفترة المتاحة)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="مثال: كل أيام الأسبوع صباحاً..."
+                  placeholderTextColor={Colors.placeholder}
+                  value={availability}
+                  onChangeText={setAvailability}
+                  textAlign="right"
+                />
+              </View>
+
+              <TouchableOpacity style={styles.submitBtn} onPress={() => {}} activeOpacity={0.8}>
+                <Text style={styles.submitBtnText}>تقديم الطلب</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 }
@@ -295,5 +400,93 @@ const getStyles = (Colors: any) =>
       color: Colors.primaryText,
       fontWeight: '700',
       marginRight: 12,
+    },
+    actionSubText: {
+      fontSize: 11,
+      color: Colors.textSecondary,
+      fontWeight: '600',
+      marginTop: 2,
+      marginRight: 12,
+    },
+    upgradeCard: {
+      backgroundColor: '#F0F8FF',
+      borderColor: '#D6EAF8',
+      borderWidth: 1.5,
+    },
+    upgradeIconBox: {
+      backgroundColor: Colors.mainBlue,
+      padding: 6,
+      borderRadius: 12,
+      marginLeft: 4,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'flex-end',
+    },
+    modalContent: {
+      backgroundColor: Colors.surface,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      maxHeight: '90%',
+    },
+    modalHeader: {
+      flexDirection: 'row-reverse',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 20,
+      borderBottomWidth: 1,
+      borderBottomColor: '#F0EBE1',
+    },
+    modalTitle: {
+      fontSize: 18,
+      fontWeight: '900',
+      color: Colors.primaryNavy,
+    },
+    closeBtn: {
+      padding: 4,
+    },
+    formContainer: {
+      padding: 20,
+      paddingBottom: 40,
+    },
+    formDesc: {
+      fontSize: 13,
+      color: Colors.textSecondary,
+      textAlign: 'center',
+      lineHeight: 20,
+      marginBottom: 20,
+    },
+    inputGroup: {
+      marginBottom: 16,
+    },
+    inputLabel: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: Colors.primaryText,
+      marginBottom: 8,
+      textAlign: 'right',
+    },
+    input: {
+      backgroundColor: Colors.background,
+      borderWidth: 1,
+      borderColor: '#E5E7EB',
+      borderRadius: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      fontSize: 14,
+      color: Colors.primaryText,
+    },
+    submitBtn: {
+      backgroundColor: Colors.primaryNavy,
+      borderRadius: 14,
+      paddingVertical: 16,
+      alignItems: 'center',
+      marginTop: 10,
+    },
+    submitBtnText: {
+      color: '#FFFFFF',
+      fontSize: 16,
+      fontWeight: '800',
     },
   });
