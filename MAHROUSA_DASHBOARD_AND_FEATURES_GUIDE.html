@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>دليل مزايا منصة محروسة ومخطط لوحة التحكم (MAHROUSA Guide & Dashboard Blueprint)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <style>
+    @page {
+      size: A4;
+      margin: 18mm 15mm 18mm 15mm;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Cairo', 'Tajawal', sans-serif;
+      background-color: #FFFFFF;
+      color: #1E293B;
+      line-height: 1.6;
+      font-size: 13.5px;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .cover-header {
+      background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 60%, #1D4ED8 100%);
+      color: #FFFFFF;
+      padding: 30px;
+      border-radius: 18px;
+      margin-bottom: 24px;
+      box-shadow: 0 10px 25px rgba(30, 58, 138, 0.15);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cover-header::after {
+      content: '';
+      position: absolute;
+      bottom: -30px;
+      left: -30px;
+      width: 140px;
+      height: 140px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 50%;
+    }
+
+    .brand-tag {
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.18);
+      color: #93C5FD;
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      letter-spacing: 0.5px;
+    }
+
+    .main-title {
+      font-size: 26px;
+      font-weight: 900;
+      margin-bottom: 6px;
+      color: #FFFFFF;
+    }
+
+    .sub-title {
+      font-size: 14px;
+      color: #E2E8F0;
+      font-weight: 500;
+      line-height: 1.5;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: #0F172A;
+      border-right: 5px solid #2563EB;
+      padding-right: 12px;
+      margin-top: 24px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .card {
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 14px;
+      padding: 14px 16px;
+      break-inside: avoid;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .card-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .card-title {
+      font-size: 14.5px;
+      font-weight: 800;
+      color: #1E293B;
+    }
+
+    .card-body {
+      font-size: 12.5px;
+      color: #475569;
+      line-height: 1.6;
+    }
+
+    .card-body ul {
+      padding-right: 18px;
+      margin-top: 6px;
+    }
+
+    .card-body li {
+      margin-bottom: 4px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0 20px 0;
+      border-radius: 10px;
+      overflow: hidden;
+      font-size: 12.5px;
+    }
+
+    th {
+      background-color: #1E3A8A;
+      color: #FFFFFF;
+      text-align: right;
+      padding: 10px 14px;
+      font-weight: 700;
+    }
+
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #E2E8F0;
+      background-color: #F8FAFC;
+      color: #334155;
+    }
+
+    tr:nth-child(even) td {
+      background-color: #FFFFFF;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .badge-urgent { background-color: #FEE2E2; color: #DC2626; border: 1px solid #FECACA; }
+    .badge-medium { background-color: #FEF3C7; color: #D97706; border: 1px solid #FDE68A; }
+    .badge-normal { background-color: #DCFCE7; color: #16A34A; border: 1px solid #BBF7D0; }
+    .badge-purple { background-color: #F5F3FF; color: #7C3AED; border: 1px solid #DDD6FE; }
+    .badge-blue { background-color: #EFF6FF; color: #2563EB; border: 1px solid #BFDBFE; }
+
+    .color-swatch-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin: 14px 0;
+    }
+
+    .color-swatch {
+      border: 1px solid #E2E8F0;
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #FFFFFF;
+    }
+
+    .color-preview {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      border: 1px solid rgba(0,0,0,0.1);
+      flex-shrink: 0;
+    }
+
+    .color-info-name {
+      font-weight: 800;
+      font-size: 13px;
+      color: #1E293B;
+    }
+
+    .color-info-hex {
+      font-size: 11px;
+      color: #64748B;
+      font-family: monospace;
+      direction: ltr;
+      text-align: right;
+    }
+
+    .highlight-box {
+      background: #EFF6FF;
+      border-right: 4px solid #2563EB;
+      border-radius: 10px;
+      padding: 14px;
+      margin: 14px 0;
+      font-size: 13px;
+      color: #1E3A8A;
+      line-height: 1.6;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+
+    .footer-note {
+      margin-top: 30px;
+      text-align: center;
+      font-size: 11.5px;
+      color: #94A3B8;
+      border-top: 1px solid #E2E8F0;
+      padding-top: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Cover Header -->
+  <div class="cover-header">
+    <div class="brand-tag">منصة وتطبيق المحروسة • MAHROUSA</div>
+    <h1 class="main-title">دليل مزايا التطبيق ومخطط لوحة التحكم (Dashboard)</h1>
+    <p class="sub-title">
+      توثيق شامل لكافة مزايا التطبيق الميداني، سير العمل (Workflows)، وهيكلية مقترحة للوحة التحكم وتنسيق الألوان والهوية البصرية.
+    </p>
+  </div>
+
+  <!-- القسم 1: مزايا التطبيق الحالية -->
+  <h2 class="section-title">📱 1. مزايا تطبيق الهاتف الميداني (Mobile App Features)</h2>
+  
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon" style="background:#EFF6FF; color:#2563EB;">👥</div>
+        <div class="card-title">نظام الحسابات والأدوار المزدوجة</div>
+      </div>
+      <div class="card-body">
+        <ul>
+          <li><strong>متطوع عادي:</strong> تسجيل سلس برقم الهاتف والولاية والمهارة (طب، لوجستيك، بناء، نقل، إلخ).</li>
+          <li><strong>مشرف ميداني معتمد:</strong> رتبة خاصة تمنح للمتطوعين الذين يملكون موارد (شاحنات، مستودعات).</li>
+          <li><strong>جمعية / هيئة:</strong> حساب مخصص لنشر الاحتياجات الميدانية ومتابعة المتطوعين بعد الاعتماد.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon" style="background:#FEE2E2; color:#DC2626;">🚨</div>
+        <div class="card-title">إدارة الاحتياجات والأولويات الذكية</div>
+      </div>
+      <div class="card-body">
+        <ul>
+          <li><strong>تصنيف الاحتياجات:</strong> يد عاملة 👷، مقر تخزين 🏬، شاحنات 🚚، خبرة 💡.</li>
+          <li><strong>الأولويات الملونة:</strong> عاجل 🔴 (Urgent)، متوسط 🟡 (Medium)، عادي 🟢 (Normal).</li>
+          <li><strong>فرز متقدم:</strong> ولايتي أولاً (حسب ولاية المستخدم)، فرز حسب الأولوية، والأحدث.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon" style="background:#F5F3FF; color:#7C3AED;">🛡️</div>
+        <div class="card-title">نظام القائمة الاحتياطية (Backup Queue)</div>
+      </div>
+      <div class="card-body">
+        <ul>
+          <li>عند اكتمال العدد المطلوب (مثلاً 20/20)، لا يقفل التسجيل.</li>
+          <li>يتاح للمتطوع خيار <strong>"تسجيل كمتطوع احتياطي"</strong> ويدرج في طابور انتظار FIFO.</li>
+          <li>يظهر له ترتيبه المباشر في قائمة الاحتياط (مثلاً: أنت رقم 1 في قائمة الاحتياط).</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon" style="background:#FEF3C7; color:#D97706;">⏳</div>
+        <div class="card-title">مهلة الساعة وتأكيد الحضور التلقائي</div>
+      </div>
+      <div class="card-body">
+        <ul>
+          <li>كل متطوع أساسي يحصل على <strong>مهلة ساعة (60 دقيقة)</strong> لتأكيد حضوره.</li>
+          <li>إذا انقضت الساعة دون تأكيد، يتم <strong>استبداله تلقائياً</strong> بأول متطوع في الاحتياط.</li>
+          <li>يصل إشعار فوري للمتطوع البديل لتأكيد حضوره والمشاركة في المهمة.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon" style="background:#ECFDF5; color:#059669;">🌟</div>
+        <div class="card-title">لوحة تحكم المشرف وإدارة الفريق</div>
+      </div>
+      <div class="card-body">
+        <ul>
+          <li>إدارة فريق المتطوعين الخاص بالمشرف (إضافة برقم الهاتف، تحديد الدور، وحذف الأعضاء).</li>
+          <li>تتبع الموارد الميدانية المعتمدة (شاحنات تبريد، مستودعات، آليات).</li>
+          <li>عرض الاحتياجات النشطة في بلدية وولاية المشرف مع اتصال مباشر بالجمعيات.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon" style="background:#F0F9FF; color:#0284C7;">🔔</div>
+        <div class="card-title">الإعلانات والإشعارات التفاعلية</div>
+      </div>
+      <div class="card-body">
+        <ul>
+          <li><strong>بنرات إعلانية ديناميكية:</strong> قبول ترقية المشرف، الأزمات العاجلة، وتنبيهات الحضور.</li>
+          <li><strong>إشعارات داخلية:</strong> شاشة مخصصة مع شارة حمراء للعدد غير المقروء في الشريط العلوي.</li>
+          <li>تم إزالة كافة البيانات الافتراضية والاعتماد كلياً على بيانات Firestore الحية.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- القسم 2: أفكار ومخطط الـ Dashboard -->
+  <h2 class="section-title">💻 2. هيكلية وأفكار لوحة التحكم المقترحة (Dashboard Blueprint)</h2>
+  
+  <p style="margin-bottom: 14px; color:#475569;">
+    لوحة التحكم (Dashboard) هي المركز الإداري للمنصة، وتتيح للمشرفين والمسؤولين مراقبة النشاط الوطني، إدارة الجمعيات، مراجعة طلبات الترقية، وإرسال نداءات الاستغاثة.
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 25%;">القسم / الشاشة في الـ Dashboard</th>
+        <th style="width: 45%;">الوظائف الرئيسية والعمليات</th>
+        <th style="width: 30%;">المجموعة في Firestore</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>📊 نظرة عامة والتحليلات (Overview & KPIs)</strong></td>
+        <td>
+          • إجمالي المتطوعين، المشرفين، الجمعيات، والاحتياجات النشطة.<br>
+          • خريطة تفاعلية للجزائر توضح بؤر الأزمات والموارد المتاحة.<br>
+          • مخطط بياني لتوزيع المتطوعين حسب الولايات والمهارات.
+        </td>
+        <td><span class="badge badge-blue">users / needs</span></td>
+      </tr>
+      <tr>
+        <td><strong>🏢 إدارة واعتماد الجمعيات (Organizations)</strong></td>
+        <td>
+          • مراجعة ملفات الجمعيات الجديدة (رقم الاعتماد، المقر، اسم الممثل).<br>
+          • أزرار إجراء فورية: <span class="badge badge-normal">قبول وتفعيل</span> أو <span class="badge badge-urgent">رفض</span>.<br>
+          • تصفح وتعديل احتياجات كل جمعية.
+        </td>
+        <td><span class="badge badge-purple">organizations</span></td>
+      </tr>
+      <tr>
+        <td><strong>🌟 طلبات الترقية لمشرف (Supervisor Requests)</strong></td>
+        <td>
+          • مراجعة طلبات المتطوعين الذين يقدمون موارد (شاحنات، مستودعات).<br>
+          • عند الضغط على "قبول"، تتم ترقية الحساب تلقائياً وإرسال إشعار فوري للتطبيق.
+        </td>
+        <td><span class="badge badge-purple">supervisor_requests</span></td>
+      </tr>
+      <tr>
+        <td><strong>📦 إدارة الاحتياجات والأزمات (Needs & Crises)</strong></td>
+        <td>
+          • مراقبة كافة الإعلانات الميدانية، عدد المتطوعين، وقائمة الاحتياط.<br>
+          • إمكانية نشر نداء استغاثة عاجل (بطاقة حمراء) يظهر فوراً في بنرات التطبيق.
+        </td>
+        <td><span class="badge badge-urgent">needs</span></td>
+      </tr>
+      <tr>
+        <td><strong>📢 مركز الإشعارات والبث (Broadcast Center)</strong></td>
+        <td>
+          • إرسال تنبيهات جماعية لكافة متطوعي ولاية معينة أو مهارة معينة.<br>
+          • كتابة الإشعار مباشرة في مجموعة <code>notifications</code> الفرعية للمتطوعين.
+        </td>
+        <td><span class="badge badge-blue">volunteers/.../notifications</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- القسم 3: الهوية البصرية ونظام الألوان -->
+  <h2 class="section-title">🎨 3. الهوية البصرية ونظام الألوان المقترح (Color Palette)</h2>
+
+  <div class="color-swatch-grid">
+    <div class="color-swatch">
+      <div class="color-preview" style="background-color: #1E3A8A;"></div>
+      <div>
+        <div class="color-info-name">أزرق المحروسة الأساسي</div>
+        <div class="color-info-hex">#1E3A8A (Navy)</div>
+      </div>
+    </div>
+
+    <div class="color-swatch">
+      <div class="color-preview" style="background-color: #2563EB;"></div>
+      <div>
+        <div class="color-info-name">أزرق تفاعلي ملكي</div>
+        <div class="color-info-hex">#2563EB (Royal Blue)</div>
+      </div>
+    </div>
+
+    <div class="color-swatch">
+      <div class="color-preview" style="background-color: #059669;"></div>
+      <div>
+        <div class="color-info-name">أخضر تضامني / اعتماد</div>
+        <div class="color-info-hex">#059669 (Emerald)</div>
+      </div>
+    </div>
+
+    <div class="color-swatch">
+      <div class="color-preview" style="background-color: #DC2626;"></div>
+      <div>
+        <div class="color-info-name">أحمر طوارئ وأزمات</div>
+        <div class="color-info-hex">#DC2626 (Urgent Red)</div>
+      </div>
+    </div>
+
+    <div class="color-swatch">
+      <div class="color-preview" style="background-color: #D97706;"></div>
+      <div>
+        <div class="color-info-name">برتقالي تنبيه ومهلة</div>
+        <div class="color-info-hex">#D97706 (Amber)</div>
+      </div>
+    </div>
+
+    <div class="color-swatch">
+      <div class="color-preview" style="background-color: #7C3AED;"></div>
+      <div>
+        <div class="color-info-name">بنفسجي رتبة المشرفين</div>
+        <div class="color-info-hex">#7C3AED (Purple)</div>
+      </div>
+    </div>
+
+    <div class="color-swatch">
+      <div class="color-preview" style="background-color: #0F172A;"></div>
+      <div>
+        <div class="color-info-name">خلفية لوحة التحكم الليلية</div>
+        <div class="color-info-hex">#0F172A (Dark Slate)</div>
+      </div>
+    </div>
+
+    <div class="color-swatch">
+      <div class="color-preview" style="background-color: #1E293B;"></div>
+      <div>
+        <div class="color-info-name">بطاقات الوضع الليلي</div>
+        <div class="color-info-hex">#1E293B (Slate Surface)</div>
+      </div>
+    </div>
+
+    <div class="color-swatch">
+      <div class="color-preview" style="background-color: #F8FAFC;"></div>
+      <div>
+        <div class="color-info-name">خلفية الوضع النهاري</div>
+        <div class="color-info-hex">#F8FAFC (Light Gray)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="highlight-box">
+    <strong>💡 نصيحة لمطور الـ Dashboard:</strong><br>
+    يُفضل استخدام خطوط عربية حديثة مثل <strong>Cairo</strong> أو <strong>Tajawal</strong> مع استخدام مكونات جاهزة مثل (TailwindCSS / Shadcn UI / Mantine) لإنشاء تجربة استخدام عصرية، خفيفة، وسريعة الاستجابة مع دعم الوضعين الليلي والنهاري.
+  </div>
+
+  <div class="footer-note">
+    منصة المحروسة (MAHROUSA) • التضامن الميداني الذكي للجزائر • تم الإنشاء والمزامنة تلقائياً
+  </div>
+
+</body>
+</html>
