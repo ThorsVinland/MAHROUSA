@@ -9,7 +9,8 @@ import {
   Platform,
   TouchableOpacity,
   StatusBar,
-  TextInput
+  TextInput,
+  ScrollView
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -208,75 +209,78 @@ export default function VerifyOtpScreen({ phoneNumber, flowData, onVerifySuccess
         barStyle={isDarkMode ? 'light-content' : 'dark-content'} 
         backgroundColor={pageBgColor}
       />
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-        <KeyboardAvoidingView 
-          style={{ flex: 1 }} 
-          behavior={Platform.OS === 'ios' ? 'padding' : null}
+      <KeyboardAvoidingView 
+        style={{ flex: 1 }} 
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.container}>
-            
-            {/* زر الرجوع */}
-            <View style={styles.topActionsContainer}>
-              <TouchableOpacity 
-                style={[styles.actionButton, { backgroundColor: cardBgColor, shadowColor: iconColor }]}
-                onPress={onBack}
-              >
-                <Ionicons name="arrow-back" size={24} color={iconColor} />
-              </TouchableOpacity>
-            </View>
-
-            {/* أيقونة الشاشة */}
-            <View style={styles.headerContainer}>
-              <View style={[styles.logoPlaceholder, { backgroundColor: cardBgColor, shadowColor: iconColor }]}>
-                <Ionicons name="chatbubbles" size={40} color={iconColor} />
-              </View>
-              <Text style={[styles.headerTitle, { color: primaryTextColor }]}>التحقق من رقم الهاتف</Text>
-              <Text style={[styles.headerSubtitle, { color: subtitleColor }]}>
-                أدخل رمز التحقق الخاص بـ:
-              </Text>
-              <Text style={[styles.phoneNumberText, { color: primaryTextColor }]}>
-                {formatPhoneNumberDisplay(phoneNumber)}
-              </Text>
-            </View>
-
-            {/* إدخال الرمز (OTP) */}
-            <View style={styles.otpContainer}>
-              <TouchableOpacity 
-                activeOpacity={1} 
-                onPress={() => inputRef.current?.focus()}
-                style={styles.slotsContainer}
-              >
-                {[0, 1, 2, 3, 4, 5].map(renderSlot)}
-              </TouchableOpacity>
-              
-              <TextInput
-                ref={inputRef}
-                style={styles.hiddenInput}
-                keyboardType="number-pad"
-                maxLength={OTP_LENGTH}
-                value={otp}
-                onChangeText={handleOtpChange}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
-                caretHidden={true}
-                autoComplete="sms-otp"
-                textContentType="oneTimeCode"
-              />
-            </View>
-
-            {/* زر المتابعة */}
-            <CustomButton 
-              title={isLoading ? "جارِ التحقق..." : "تأكيد الرمز"} 
-              onPress={handleVerify}
-              iconName="checkmark-circle-outline"
-              style={styles.verifyButton}
-              themeMode={themeMode}
-              disabled={otp.length !== OTP_LENGTH || isLoading}
-            />
-
+          {/* زر الرجوع */}
+          <View style={styles.topActionsContainer}>
+            <TouchableOpacity 
+              style={[styles.actionButton, { backgroundColor: cardBgColor, shadowColor: iconColor }]}
+              onPress={onBack}
+            >
+              <Ionicons name="arrow-back" size={24} color={iconColor} />
+            </TouchableOpacity>
           </View>
-        </KeyboardAvoidingView>
-      </TouchableWithoutFeedback>
+
+          {/* أيقونة الشاشة */}
+          <View style={styles.headerContainer}>
+            <View style={[styles.logoPlaceholder, { backgroundColor: cardBgColor, shadowColor: iconColor }]}>
+              <Ionicons name="chatbubbles" size={40} color={iconColor} />
+            </View>
+            <Text style={[styles.headerTitle, { color: primaryTextColor }]}>التحقق من رقم الهاتف</Text>
+            <Text style={[styles.headerSubtitle, { color: subtitleColor }]}>
+              أدخل رمز التحقق الخاص بـ:
+            </Text>
+            <Text style={[styles.phoneNumberText, { color: primaryTextColor }]}>
+              {formatPhoneNumberDisplay(phoneNumber)}
+            </Text>
+          </View>
+
+          {/* إدخال الرمز (OTP) */}
+          <View style={styles.otpContainer}>
+            <TouchableOpacity 
+              activeOpacity={1} 
+              onPress={() => inputRef.current?.focus()}
+              style={styles.slotsContainer}
+            >
+              {[0, 1, 2, 3, 4, 5].map(renderSlot)}
+            </TouchableOpacity>
+            
+            <TextInput
+              ref={inputRef}
+              style={styles.hiddenInput}
+              keyboardType="number-pad"
+              maxLength={OTP_LENGTH}
+              value={otp}
+              onChangeText={handleOtpChange}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              caretHidden={true}
+              autoComplete="sms-otp"
+              textContentType="oneTimeCode"
+            />
+          </View>
+
+          {/* زر المتابعة */}
+          <CustomButton 
+            title={isLoading ? "جارِ التحقق..." : "تأكيد الرمز"} 
+            onPress={handleVerify}
+            iconName="checkmark-circle-outline"
+            style={styles.verifyButton}
+            themeMode={themeMode}
+            disabled={otp.length !== OTP_LENGTH || isLoading}
+          />
+
+          {/* Bottom Spacer for keyboard scrolling */}
+          <View style={{ height: 160 }} />
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -285,10 +289,11 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
-  container: {
-    flex: 1,
+  scrollContainer: {
+    flexGrow: 1,
     paddingHorizontal: 24,
-    paddingTop: 20,
+    paddingTop: 10,
+    paddingBottom: 160,
     alignItems: 'center',
   },
   topActionsContainer: {

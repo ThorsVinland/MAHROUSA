@@ -22,6 +22,7 @@ import SkillsSelectionScreen from "../screens/volunteer/SkillsSelectionScreen";
 import RatingScreen from "../screens/volunteer/RatingScreen";
 import SupervisorTeamScreen from "../screens/volunteer/SupervisorTeamScreen";
 import SupervisorUpgradeScreen from "../screens/volunteer/SupervisorUpgradeScreen";
+import NotificationsScreen from "../screens/volunteer/NotificationsScreen";
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -107,6 +108,8 @@ export default function VolunteerNavigator({ onLogout }) {
       <Stack.Screen name="Rating" component={RatingScreen} />
       <Stack.Screen name="SupervisorTeam" component={SupervisorTeamScreen} />
       <Stack.Screen name="SupervisorUpgrade" component={SupervisorUpgradeScreen} />
+      <Stack.Screen name="SupervisorDashboard" component={SupervisorDashboardScreen} />
+      <Stack.Screen name="Notifications" component={NotificationsScreen} />
     </Stack.Navigator>
   );
 }

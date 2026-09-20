@@ -144,6 +144,8 @@ export default function LoginScreen({ selectedRole, onGoToRegister, onBack, onGo
             </TouchableOpacity>
           </View>
 
+          {/* Bottom Spacer for keyboard scrolling */}
+          <View style={{ height: 160 }} />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -157,8 +159,8 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    justifyContent: 'center',
-    paddingVertical: 40,
+    paddingTop: 10,
+    paddingBottom: 160,
   },
   
   topActionsContainer: {

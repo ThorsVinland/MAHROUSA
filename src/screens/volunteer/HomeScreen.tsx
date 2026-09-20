@@ -1,8 +1,8 @@
 // ============================================================
 // src/screens/volunteer/HomeScreen.tsx
 // Dynamic Volunteer Home Screen with Real-time Firestore Needs,
-// Smart Sorting (My Wilaya First / By Priority / Newest),
-// and Live Volunteer Counter (5/40) Sync
+// Real Dynamic Announcements (Supervisor Upgrade, Crises, Backup Promotions),
+// In-App Notifications Badge, and Real Live Stats & Tasks
 // ============================================================
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
@@ -21,22 +21,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useAlert } from '../../context/AlertContext';
-import { MapMarker } from '../../types/home.types';
+import { MapMarker, VolunteerStats, NextTask } from '../../types/home.types';
 import { AuthUser } from '../../types/auth.types';
-import { NeedItem, NeedType, SortFilterOption } from '../../types/need.types';
-import {
-  VOLUNTEER_NAME,
-  CURRENT_WILAYA,
-  STATS,
-  NEXT_TASK,
-  MAP_MARKERS,
-} from '../../data/homeMockData';
+import { NeedItem, SortFilterOption } from '../../types/need.types';
+import { HomeAnnouncement, AppNotification } from '../../types/notification.types';
+import { VolunteerTaskItem } from '../../types/task.types';
+import { MAP_MARKERS } from '../../data/homeMockData';
 import { useAuthStore } from '../../store/authStore';
 import { getWilayaInfo } from '../../utils/wilayaHelper';
 import { WILAYAS } from '../../constants/algeria';
 import { TopBar } from '../../components/home/TopBar';
 import { GreetingSection } from '../../components/home/GreetingSection';
-import { UrgentBanner } from '../../components/home/UrgentBanner';
+import { DynamicAnnouncementsBanner } from '../../components/home/DynamicAnnouncementsBanner';
 import { StatsRow } from '../../components/home/StatsRow';
 import { SectionHeader } from '../../components/home/SectionHeader';
 import { NeedCard } from '../../components/home/NeedCard';
@@ -46,7 +42,14 @@ import {
   subscribeToAllNeeds,
   volunteerToNeed,
   cancelVolunteerForNeed,
+  confirmAttendanceForNeed,
+  checkAndPromoteBackupVolunteers,
 } from '../../services/needsService';
+import {
+  subscribeToUserNotifications,
+  checkAndCreateSupervisorNotification,
+} from '../../services/notificationService';
+import { subscribeToVolunteerTasks } from '../../services/tasksService';
 
 interface NavigationProp {
   navigate: (screen: string, params?: Record<string, unknown>) => void;
@@ -56,7 +59,7 @@ interface HomeScreenProps {
   navigation?: NavigationProp;
 }
 
-const CATEGORY_TABS: { id: string; label: string; icon?: string }[] = [
+const CATEGORY_TABS: { id: string; label: string }[] = [
   { id: 'all', label: 'الكل' },
   { id: 'يد عاملة', label: 'يد عاملة 👷' },
   { id: 'مقر تخزين', label: 'مقر تخزين 🏬' },
@@ -65,19 +68,23 @@ const CATEGORY_TABS: { id: string; label: string; icon?: string }[] = [
 ];
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
-  const { colors: Colors } = useTheme();
-  const styles = useMemo(() => getStyles(Colors), [Colors]);
+  const { colors: Colors, isDarkMode } = useTheme();
+  const styles = useMemo(() => getStyles(Colors, isDarkMode), [Colors, isDarkMode]);
   const { showAlert } = useAlert();
 
   // Dynamic user data
   const user = useAuthStore((state) => state.user);
-  const volunteerName = user?.name || VOLUNTEER_NAME;
-  const userWilayaCode = user?.wilaya ? String(user.wilaya).padStart(2, '0') : CURRENT_WILAYA;
+  const volunteerName = user?.fullName || user?.name || 'متطوع المحروسة';
+  const userPhone = user?.phone || '';
+  const userWilayaCode = user?.wilaya ? String(user.wilaya).padStart(2, '0') : '16';
   const userWilayaInfo = useMemo(() => getWilayaInfo(userWilayaCode), [userWilayaCode]);
-  const currentUserId = user?.id || user?.phone || 'user_guest';
+  const currentUserId = user?.id || userPhone || 'user_guest';
+  const isSupervisor = user?.isSupervisor === true;
 
-  // State: Firestore Needs
+  // State: Firestore Needs & Tasks
   const [liveNeeds, setLiveNeeds] = useState<NeedItem[]>([]);
+  const [userTasks, setUserTasks] = useState<VolunteerTaskItem[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isLoadingNeeds, setIsLoadingNeeds] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
@@ -88,15 +95,40 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [isWilayaModalVisible, setIsWilayaModalVisible] = useState(false);
   const [wilayaSearch, setWilayaSearch] = useState('');
 
-  const [isAttendanceConfirmed, setIsAttendanceConfirmed] = useState(false);
+  // 1. Check and Sync Supervisor Notifications on mount/user update
+  useEffect(() => {
+    if (userPhone && isSupervisor) {
+      checkAndCreateSupervisorNotification(userPhone, true);
+    }
+  }, [userPhone, isSupervisor]);
 
-  // 1. Subscribe to Firestore in real-time
+  // 2. Subscribe to Notifications in Real-time
+  useEffect(() => {
+    if (!userPhone) return;
+    const unsub = subscribeToUserNotifications(
+      userPhone,
+      (list) => {
+        setNotifications(list);
+      },
+      () => {}
+    );
+    return () => {
+      if (typeof unsub === 'function') unsub();
+    };
+  }, [userPhone]);
+
+  // 3. Subscribe to Firestore Needs in real-time
   useEffect(() => {
     setIsLoadingNeeds(true);
     const unsubscribe = subscribeToAllNeeds(
       (items) => {
         setLiveNeeds(items);
         setIsLoadingNeeds(false);
+
+        // Auto-check promotion for active needs
+        items.slice(0, 5).forEach((need) => {
+          checkAndPromoteBackupVolunteers(need.id).catch(() => {});
+        });
       },
       (error) => {
         console.warn('Failed to fetch live needs:', error);
@@ -106,7 +138,121 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     return () => unsubscribe && unsubscribe();
   }, []);
 
-  // 2. Dynamic map preview markers
+  // 4. Subscribe to Volunteer's Tasks in Real-time (For Next Task & Live Stats)
+  useEffect(() => {
+    const unsub = subscribeToVolunteerTasks(
+      currentUserId,
+      userPhone,
+      (tasks) => {
+        setUserTasks(tasks);
+      },
+      () => {}
+    );
+    return () => {
+      if (typeof unsub === 'function') unsub();
+    };
+  }, [currentUserId, userPhone]);
+
+  // Real Unread Notifications Count
+  const unreadNotificationsCount = useMemo(() => {
+    return notifications.filter((n) => !n.isRead).length;
+  }, [notifications]);
+
+  // Real Stats computed dynamically
+  const liveStats: VolunteerStats = useMemo(() => {
+    const completedTasks = userTasks.filter((t) => t.isCompletedByMe);
+    const documentedHours = completedTasks.reduce(
+      (acc, t) => acc + (t.estimatedHours || 3),
+      0
+    );
+    return {
+      rating: 5.0,
+      documentedHours,
+      completedTasks: completedTasks.length,
+    };
+  }, [userTasks]);
+
+  // Real Next Upcoming Task
+  const nextActiveTask = useMemo(() => {
+    return userTasks.find((t) => !t.isCompletedByMe) || null;
+  }, [userTasks]);
+
+  // 5. Dynamic Real Announcements Generation
+  const realAnnouncements = useMemo<HomeAnnouncement[]>(() => {
+    const list: HomeAnnouncement[] = [];
+
+    // A. Supervisor Upgrade Approval Announcement
+    if (isSupervisor) {
+      list.push({
+        id: 'supervisor_upgrade_banner',
+        type: 'upgrade_approved',
+        badge: 'مشرف معتمد 🌟',
+        badgeColor: '#8B5CF6',
+        title: 'تهانينا! تمت ترقيتك إلى رتبة مشرف معتمد 🌟',
+        description:
+          'تم قبول طلبك كمشرف في المنصة. يمكنك الآن إدارة فريقك الميداني وتتبع مواردك واحتياجاتك اللوجستية.',
+        actionText: 'لوحة التحكم 🚀',
+        color: '#8B5CF6',
+        bgColor: isDarkMode ? '#24143D' : '#F5F3FF',
+        borderColor: isDarkMode ? '#5B21B6' : '#DDD6FE',
+        iconName: 'ribbon',
+        onPress: () => navigation?.navigate('SupervisorDashboard'),
+      });
+    }
+
+    // B. Backup Promoted or Attendance Pending Reminder
+    const pendingAttendanceNeed = liveNeeds.find(
+      (n) =>
+        ((currentUserId && n.volunteers?.includes(currentUserId)) ||
+          (userPhone && n.volunteers?.includes(userPhone))) &&
+        !n.confirmedAttendance?.includes(currentUserId) &&
+        (!userPhone || !n.confirmedAttendance?.includes(userPhone))
+    );
+
+    if (pendingAttendanceNeed) {
+      list.push({
+        id: 'attendance_pending_' + pendingAttendanceNeed.id,
+        type: 'attendance_pending',
+        badge: 'تأكيد الحضور ⏳',
+        badgeColor: '#F59E0B',
+        title: `تأكيد الحضور الميداني مطلوب ⏳`,
+        description: `أنت مسجل كمتطوع أساسي في "${pendingAttendanceNeed.title}". يرجى تأكيد حضورك الميداني لتجنب الاستبدال بمتطوع من الاحتياط.`,
+        actionText: 'تأكيد الحضور الآن ✓',
+        color: '#D97706',
+        bgColor: isDarkMode ? '#36210A' : '#FFFBEB',
+        borderColor: isDarkMode ? '#D97706' : '#FDE68A',
+        iconName: 'time',
+        onPress: () =>
+          navigation?.navigate('NeedDetails', {
+            need: pendingAttendanceNeed,
+            id: pendingAttendanceNeed.id,
+          }),
+      });
+    }
+
+    // C. Urgent Crises / Priority Needs
+    const urgentNeeds = liveNeeds.filter((n) => n.priority === 'urgent');
+    urgentNeeds.slice(0, 2).forEach((urgent) => {
+      list.push({
+        id: 'urgent_crisis_' + urgent.id,
+        type: 'urgent_crisis',
+        badge: 'نداء طارئ عاجل 🔴',
+        badgeColor: '#EF4444',
+        title: `أزمة عاجلة: ${urgent.title}`,
+        description: `${urgent.wilayaName || urgent.wilaya} – ${urgent.locationDetails || 'مطلوب استجابة وتدخل ميداني فوري'}`,
+        actionText: 'استجابة وتطوع ⚡',
+        color: '#DC2626',
+        bgColor: isDarkMode ? '#3B1414' : '#FEF2F2',
+        borderColor: isDarkMode ? '#EF4444' : '#FECACA',
+        iconName: 'alert-circle',
+        onPress: () => navigation?.navigate('NeedDetails', { need: urgent, id: urgent.id }),
+      });
+    });
+
+    return list;
+  }, [isSupervisor, liveNeeds, currentUserId, userPhone, isDarkMode, navigation]);
+
+  // 6. Dynamic map preview markers
   const dynamicMarkers = useMemo<MapMarker[]>(() => {
     const crisis = MAP_MARKERS.filter((m) => m.type === 'crisis');
     return [
@@ -121,19 +267,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     ];
   }, [userWilayaInfo]);
 
-  // 3. Priority weight for sorting: urgent (3) > medium (2) > normal (1)
+  // Priority weight helper
   const getPriorityWeight = (priority: string): number => {
     if (priority === 'urgent') return 3;
     if (priority === 'medium' || priority === 'high') return 2;
     return 1;
   };
 
-  // 4. Filter & Sort Logic as requested:
-  // - Category filter
-  // - Wilaya filter
-  // - my_wilaya: user's wilaya first, then others underneath
-  // - priority: Urgent (Red) -> Medium (Yellow) -> Normal (Green), regardless of wilaya
-  // - newest: createdAt descending
+  // Filter & Sort Logic
   const displayedNeeds = useMemo(() => {
     let result = [...liveNeeds];
 
@@ -142,7 +283,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       result = result.filter((item) => item.needType === categoryFilter);
     }
 
-    // Filter by specific Wilaya if selected
+    // Filter by specific Wilaya
     if (selectedWilayaFilter !== 'all') {
       result = result.filter(
         (item) =>
@@ -153,17 +294,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
     // Sorting Modes
     if (sortBy === 'priority') {
-      // فرز حسب الأولوية: الحمراء أولاً ثم الصفراء ثم الخضراء ولا يهم الولايات
       result.sort((a, b) => getPriorityWeight(b.priority) - getPriorityWeight(a.priority));
     } else if (sortBy === 'newest') {
-      // فرز حسب الجديدة: الأحدث في الأعلى
       result.sort((a, b) => {
         const timeA = a.createdAt?.seconds || 0;
         const timeB = b.createdAt?.seconds || 0;
         return timeB - timeA;
       });
     } else {
-      // Default: ولايتي أولاً ثم الولايات الأخرى تحتها
+      // Default: ولايتي أولاً ثم الولايات الأخرى
       result.sort((a, b) => {
         const aIsMyWilaya =
           a.wilaya === userWilayaCode ||
@@ -174,8 +313,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
         if (aIsMyWilaya && !bIsMyWilaya) return -1;
         if (!aIsMyWilaya && bIsMyWilaya) return 1;
-
-        // If both in my wilaya or both outside, sort by priority
         return getPriorityWeight(b.priority) - getPriorityWeight(a.priority);
       });
     }
@@ -183,35 +320,65 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     return result;
   }, [liveNeeds, categoryFilter, selectedWilayaFilter, sortBy, userWilayaCode]);
 
-  // Urgent item for the top banner
-  const mostUrgentNeed = useMemo(() => {
-    return liveNeeds.find((n) => n.priority === 'urgent');
-  }, [liveNeeds]);
+  // Needs count in user's wilaya today
+  const myWilayaNeedsCount = useMemo(() => {
+    return liveNeeds.filter(
+      (n) =>
+        n.wilaya === userWilayaCode ||
+        n.wilaya?.padStart(2, '0') === userWilayaCode.padStart(2, '0')
+    ).length;
+  }, [liveNeeds, userWilayaCode]);
 
-  // 5. Handle Volunteering directly from the card
+  // Handle Volunteering directly from card
   const handleVolunteerAction = async (need: NeedItem) => {
     const isVolunteered =
-      Array.isArray(need.volunteers) && need.volunteers.includes(currentUserId);
+      Array.isArray(need.volunteers) &&
+      ((currentUserId && need.volunteers.includes(currentUserId)) ||
+        (userPhone && need.volunteers.includes(userPhone)));
 
     if (isVolunteered) {
-      // Already volunteered -> prompt to cancel
+      showAlert('إلغاء التطوع', 'هل تريد إلغاء تطوعك في هذا الاحتياج؟', [
+        { text: 'تراجع', style: 'cancel' },
+        {
+          text: 'نعم، إلغاء التطوع',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setActionLoadingId(need.id);
+              await cancelVolunteerForNeed(need.id, currentUserId);
+              if (userPhone && userPhone !== currentUserId) {
+                await cancelVolunteerForNeed(need.id, userPhone).catch(() => {});
+              }
+              setActionLoadingId(null);
+              showAlert('تم', 'تم إلغاء تطوعك في هذه المهمة.');
+            } catch (err: any) {
+              setActionLoadingId(null);
+              showAlert('خطأ', err?.message || 'تعذر إلغاء التطوع.');
+            }
+          },
+        },
+      ]);
+      return;
+    }
+
+    // Checking if full -> register backup or normal
+    if (need.volunteersCount >= need.quantity) {
       showAlert(
-        'إلغاء التطوع',
-        'هل تريد إلغاء تطوعك في هذا الاحتياج؟',
+        'التسجيل في قائمة الاحتياط 🛡️',
+        'اكتمل العدد المطلوب. هل تود التسجيل في القائمة الاحتياطية لتتم ترقيتك تلقائياً إذا شغر مقعد؟',
         [
-          { text: 'تراجع', style: 'cancel' },
+          { text: 'إلغاء', style: 'cancel' },
           {
-            text: 'نعم، إلغاء التطوع',
-            style: 'destructive',
+            text: 'تأكيد',
             onPress: async () => {
               try {
                 setActionLoadingId(need.id);
-                await cancelVolunteerForNeed(need.id, currentUserId);
+                const res = await volunteerToNeed(need.id, currentUserId);
                 setActionLoadingId(null);
-                showAlert('تم', 'تم إلغاء تطوعك في هذه المهمة.');
+                showAlert('تم بنجاح ✓', res.message);
               } catch (err: any) {
                 setActionLoadingId(null);
-                showAlert('خطأ', err?.message || 'تعذر إلغاء التطوع.');
+                showAlert('تنبيه', err?.message || 'تعذر إتمام العملية.');
               }
             },
           },
@@ -220,36 +387,31 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       return;
     }
 
-    // Checking if full
-    if (need.volunteersCount >= need.quantity) {
-      showAlert('عذراً', 'العدد المطلوب لهذا الاحتياج قد اكتمل بالفعل.');
-      return;
-    }
-
     // Register Volunteer
     try {
       setActionLoadingId(need.id);
-      await volunteerToNeed(need.id, currentUserId);
+      const res = await volunteerToNeed(need.id, currentUserId);
       setActionLoadingId(null);
-      showAlert('تم بنجاح ✓', 'شكراً لتطوعك! تم تسجيل اسمك وزيادة العدد.');
+      showAlert('تم بنجاح ✓', res.message);
     } catch (err: any) {
       setActionLoadingId(null);
       showAlert('تنبيه', err?.message || 'تعذر إتمام عملية التطوع.');
     }
   };
 
-  const handleConfirmAttendance = useCallback(() => {
-    showAlert('تأكيد الحضور', 'هل أنت متأكد من حضورك لهذه المهمة؟', [
-      { text: 'إلغاء', style: 'cancel' },
-      {
-        text: 'تأكيد ✓',
-        onPress: () => {
-          setIsAttendanceConfirmed(true);
-          showAlert('تم بنجاح', 'تم تأكيد حضورك للمهمة. شكراً لتطوعك!');
-        },
-      },
-    ]);
-  }, [showAlert]);
+  // Handle Attendance confirmation for Next Task
+  const handleConfirmAttendanceForNextTask = useCallback(async () => {
+    if (!nextActiveTask) return;
+    try {
+      await confirmAttendanceForNeed(nextActiveTask.id, currentUserId);
+      if (userPhone && userPhone !== currentUserId) {
+        await confirmAttendanceForNeed(nextActiveTask.id, userPhone).catch(() => {});
+      }
+      showAlert('تم تأكيد الحضور ✓', 'تم تثبيت حضورك الميداني لهذه المهمة بنجاح!');
+    } catch (err: any) {
+      showAlert('خطأ', err?.message || 'تعذر تأكيد الحضور.');
+    }
+  }, [nextActiveTask, currentUserId, userPhone, showAlert]);
 
   const updateWilaya = useCallback(
     (newWilaya: string) => {
@@ -292,8 +454,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
+      {/* TopBar with Dynamic Unread Notifications Count */}
       <TopBar
-        notificationCount={3}
+        notificationCount={unreadNotificationsCount}
         wilaya={userWilayaInfo.name}
         onNotificationPress={() => navigation?.navigate('Notifications')}
         onLocationPress={handleLocationPress}
@@ -303,18 +466,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <GreetingSection name={volunteerName} newNeedsCount={liveNeeds.length} />
+        <GreetingSection name={volunteerName} newNeedsCount={myWilayaNeedsCount} />
 
-        {/* Urgent Banner from Real Firestore if exists */}
-        {mostUrgentNeed && (
-          <UrgentBanner
-            title="احتياج عاجل 🔴"
-            description={`${mostUrgentNeed.title} – ${mostUrgentNeed.wilayaName || mostUrgentNeed.wilaya}`}
-            onPress={() => navigation?.navigate('NeedDetails', { need: mostUrgentNeed })}
-          />
+        {/* Real Dynamic Announcements Banner (Supervisor Upgrade, Crises, Attendance Reminders) */}
+        {realAnnouncements.length > 0 && (
+          <DynamicAnnouncementsBanner announcements={realAnnouncements} />
         )}
 
-        <StatsRow stats={STATS} />
+        {/* Real-time Dynamic Stats Row */}
+        <StatsRow stats={liveStats} />
 
         {/* Needs Header */}
         <SectionHeader
@@ -323,7 +483,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           onAction={() => {}}
         />
 
-        {/* 1. Sorting Control Tabs (ولايتي أولاً / حسب الأولوية / الأحدث) */}
+        {/* Sorting Control Tabs */}
         <View style={styles.sortContainer}>
           <ScrollView
             horizontal
@@ -403,7 +563,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           </ScrollView>
         </View>
 
-        {/* 2. Need Type Category Tabs (يد عاملة، مقر تخزين، شاحنة، خبرة) */}
+        {/* Need Type Category Tabs */}
         <View style={styles.categoryContainer}>
           <ScrollView
             horizontal
@@ -439,7 +599,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             <Ionicons name="document-text-outline" size={48} color={Colors.placeholder} />
             <Text style={styles.emptyTitle}>لا توجد إعلانات مطابقة حالياً</Text>
             <Text style={styles.emptyDesc}>
-              جرب تغيير خيارات التصفية أو قم بإضافة احتياج جديد من حساب الجمعية.
+              جرب تغيير خيارات التصفية أو اختر ولاية أخرى لاستكشاف الفرص الميدانية.
             </Text>
             {selectedWilayaFilter !== 'all' && (
               <TouchableOpacity
@@ -457,25 +617,35 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               need={need}
               currentUserId={currentUserId}
               isActionLoading={actionLoadingId === need.id}
-              onPress={() => navigation?.navigate('NeedDetails', { need })}
+              onPress={() => navigation?.navigate('NeedDetails', { need, id: need.id })}
               onVolunteerPress={() => handleVolunteerAction(need)}
             />
           ))
         )}
 
+        {/* Map Preview */}
         <MapPreview
           markers={dynamicMarkers}
           onPress={() => navigation?.navigate('VolunteerMap')}
         />
 
-        <NextTaskCard
-          task={NEXT_TASK}
-          isConfirmed={isAttendanceConfirmed}
-          onConfirm={handleConfirmAttendance}
-          onViewDetails={() =>
-            navigation?.navigate('TaskDetails', { id: NEXT_TASK.id })
-          }
-        />
+        {/* Real Next Task Card if user has an active task */}
+        {nextActiveTask && (
+          <NextTaskCard
+            task={{
+              id: nextActiveTask.id,
+              title: nextActiveTask.title,
+              date: nextActiveTask.startDate || 'قريباً',
+              time: nextActiveTask.wilayaName || nextActiveTask.locationDetails || '',
+              duration: `${nextActiveTask.estimatedHours || 3} ساعات`,
+            }}
+            isConfirmed={Boolean(nextActiveTask.isAttendanceConfirmed)}
+            onConfirm={handleConfirmAttendanceForNextTask}
+            onViewDetails={() =>
+              navigation?.navigate('NeedDetails', { id: nextActiveTask.id })
+            }
+          />
+        )}
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
@@ -565,7 +735,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
 export default HomeScreen;
 
-const getStyles = (Colors: any) =>
+const getStyles = (Colors: any, isDarkMode: boolean) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -587,7 +757,7 @@ const getStyles = (Colors: any) =>
       alignItems: 'center',
       backgroundColor: Colors.surface,
       borderWidth: 1.5,
-      borderColor: '#E5E7EB',
+      borderColor: isDarkMode ? '#2D3748' : '#E5E7EB',
       borderRadius: 18,
       paddingHorizontal: 14,
       paddingVertical: 7,
@@ -600,7 +770,7 @@ const getStyles = (Colors: any) =>
     sortPillText: {
       fontSize: 12,
       fontWeight: '700',
-      color: Colors.primaryText,
+      color: Colors.textSecondary,
     },
     sortPillTextActive: {
       color: '#FFFFFF',
@@ -615,159 +785,166 @@ const getStyles = (Colors: any) =>
     },
     catChip: {
       backgroundColor: Colors.surface,
+      borderWidth: 1.5,
+      borderColor: isDarkMode ? '#2D3748' : '#E5E7EB',
       borderRadius: 16,
-      borderWidth: 1,
-      borderColor: '#E5E7EB',
       paddingHorizontal: 14,
       paddingVertical: 6,
     },
     catChipActive: {
-      backgroundColor: Colors.mainBlue,
-      borderColor: Colors.mainBlue,
+      backgroundColor: Colors.mainBlue || '#2563EB',
+      borderColor: Colors.mainBlue || '#2563EB',
     },
     catChipText: {
       fontSize: 12,
-      fontWeight: '600',
+      fontWeight: '700',
       color: Colors.textSecondary,
     },
     catChipTextActive: {
       color: '#FFFFFF',
-      fontWeight: '700',
     },
     loadingBox: {
-      padding: 30,
+      paddingVertical: 40,
       alignItems: 'center',
       justifyContent: 'center',
-      gap: 12,
     },
     loadingText: {
-      fontSize: 14,
-      color: Colors.textSecondary,
+      marginTop: 10,
+      fontSize: 13,
       fontWeight: '600',
+      color: Colors.textSecondary,
     },
     emptyBox: {
-      backgroundColor: Colors.surface,
-      marginHorizontal: 18,
-      marginVertical: 14,
-      padding: 24,
-      borderRadius: 20,
+      paddingVertical: 40,
+      paddingHorizontal: 20,
       alignItems: 'center',
       justifyContent: 'center',
+      backgroundColor: Colors.surface,
+      borderRadius: 20,
+      marginHorizontal: 18,
+      marginBottom: 16,
       borderWidth: 1,
-      borderColor: '#E5E7EB',
-      borderStyle: 'dashed',
+      borderColor: isDarkMode ? '#2D3748' : '#F0EBE1',
     },
     emptyTitle: {
       fontSize: 16,
       fontWeight: '800',
       color: Colors.primaryText,
-      marginTop: 10,
+      marginTop: 12,
       marginBottom: 6,
     },
     emptyDesc: {
       fontSize: 13,
       color: Colors.textSecondary,
       textAlign: 'center',
-      lineHeight: 20,
+      lineHeight: 18,
     },
     resetFilterBtn: {
       marginTop: 14,
-      backgroundColor: Colors.primaryNavy,
-      paddingHorizontal: 18,
+      backgroundColor: Colors.mainBlue || '#2563EB',
+      paddingHorizontal: 16,
       paddingVertical: 8,
       borderRadius: 12,
     },
     resetFilterText: {
       color: '#FFFFFF',
-      fontSize: 13,
+      fontSize: 12,
       fontWeight: '700',
     },
     bottomSpacer: {
-      height: 10,
+      height: 40,
     },
     modalSafeArea: {
       flex: 1,
-      backgroundColor: '#F8F4EE',
+      backgroundColor: Colors.pageBackground || Colors.background,
     },
     modalHeader: {
       flexDirection: 'row-reverse',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: 16,
-      backgroundColor: '#FFFFFF',
+      paddingHorizontal: 20,
+      paddingVertical: 14,
       borderBottomWidth: 1,
-      borderBottomColor: '#E5E7EB',
-    },
-    modalCloseBtn: {
-      padding: 6,
-    },
-    modalCloseText: {
-      color: '#E74C3C',
-      fontSize: 15,
-      fontWeight: '700',
+      borderBottomColor: isDarkMode ? '#2D3748' : '#E5E7EB',
+      backgroundColor: Colors.surface,
     },
     modalTitle: {
-      fontSize: 16,
+      fontSize: 17,
       fontWeight: '800',
-      color: '#1A1A2E',
+      color: Colors.primaryText,
+    },
+    modalCloseBtn: {
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 8,
+      backgroundColor: isDarkMode ? '#1E293B' : '#F3F4F6',
+    },
+    modalCloseText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: Colors.primaryNavy,
     },
     searchBox: {
       flexDirection: 'row-reverse',
       alignItems: 'center',
-      backgroundColor: '#FFFFFF',
-      margin: 14,
-      paddingHorizontal: 12,
-      borderRadius: 12,
+      backgroundColor: Colors.surface,
+      borderRadius: 14,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      marginHorizontal: 16,
+      marginVertical: 12,
       borderWidth: 1,
-      borderColor: '#E5E7EB',
-      gap: 8,
+      borderColor: isDarkMode ? '#2D3748' : '#E5E7EB',
+      gap: 10,
     },
     searchInput: {
       flex: 1,
-      paddingVertical: 10,
       fontSize: 14,
+      color: Colors.primaryText,
     },
     allWilayasItem: {
-      backgroundColor: '#FFFFFF',
+      paddingVertical: 12,
       paddingHorizontal: 20,
-      paddingVertical: 14,
-      borderBottomWidth: 1,
-      borderBottomColor: '#E5E7EB',
-      marginBottom: 4,
+      backgroundColor: isDarkMode ? '#1E293B' : '#F0F9FF',
+      marginHorizontal: 16,
+      marginBottom: 8,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: isDarkMode ? '#334155' : '#BAE6FD',
     },
     allWilayasItemActive: {
-      backgroundColor: '#EBF5FB',
+      backgroundColor: Colors.mainBlue || '#2563EB',
+      borderColor: Colors.mainBlue || '#2563EB',
     },
     allWilayasText: {
-      fontSize: 15,
-      fontWeight: '700',
-      color: Colors.primaryNavy,
+      fontSize: 14,
+      fontWeight: '800',
+      color: Colors.mainBlue || '#0284C7',
       textAlign: 'right',
     },
     allWilayasTextActive: {
-      color: Colors.mainBlue,
-      fontWeight: '800',
+      color: '#FFFFFF',
     },
     wilayaItem: {
       flexDirection: 'row-reverse',
-      justifyContent: 'space-between',
       alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 13,
       paddingHorizontal: 20,
-      paddingVertical: 14,
       borderBottomWidth: 1,
-      borderBottomColor: '#F0EBE1',
-      backgroundColor: '#FFFFFF',
+      borderBottomColor: isDarkMode ? '#1E293B' : '#F3F4F6',
+      backgroundColor: Colors.surface,
     },
     wilayaItemSelected: {
-      backgroundColor: '#F0F8FF',
+      backgroundColor: isDarkMode ? '#1E293B' : '#F0F9FF',
     },
     wilayaItemText: {
-      fontSize: 15,
+      fontSize: 14,
+      color: Colors.primaryText,
       fontWeight: '600',
-      color: '#1A1A2E',
     },
     wilayaItemTextSelected: {
-      color: Colors.mainBlue,
       fontWeight: '800',
+      color: Colors.mainBlue || '#2563EB',
     },
   });

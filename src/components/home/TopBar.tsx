@@ -16,7 +16,7 @@ interface TopBarProps {
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
-  notificationCount = 3,
+  notificationCount = 0,
   wilaya,
   onNotificationPress,
   onLocationPress,

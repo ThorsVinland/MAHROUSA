@@ -258,6 +258,8 @@ export default function SupervisorUpgradeScreen() {
             )}
           </TouchableOpacity>
 
+          {/* Bottom Spacer for keyboard scrolling */}
+          <View style={{ height: 160 }} />
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -328,7 +330,7 @@ const styles = StyleSheet.create({
   },
   backBtn: { padding: 4 },
   headerTitle: { fontSize: 18, fontWeight: '800' },
-  scrollContainer: { padding: 20, paddingBottom: 60 },
+  scrollContainer: { padding: 20, paddingBottom: 180 },
   formDesc: {
     fontSize: 15,
     color: '#4B5563',

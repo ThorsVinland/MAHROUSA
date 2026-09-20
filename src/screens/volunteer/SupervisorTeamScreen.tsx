@@ -450,6 +450,9 @@ export default function SupervisorTeamScreen() {
                     <Text style={styles.submitBtnText}>إضافة المتطوع للفريق</Text>
                   )}
                 </TouchableOpacity>
+
+                {/* Bottom Spacer for keyboard */}
+                <View style={{ height: 160 }} />
               </ScrollView>
             </Pressable>
           </KeyboardAvoidingView>
@@ -550,7 +553,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalScrollContent: {
-    paddingBottom: 20,
+    paddingBottom: 160,
   },
   modalHeader: {
     flexDirection: 'row-reverse',

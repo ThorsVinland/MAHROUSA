@@ -20,6 +20,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { NeedItem, NeedType, PriorityLevel } from '../types/need.types';
+import { sendNotificationToUser } from './notificationService';
 
 export interface CreateNeedInput {
   title: string;
@@ -271,6 +272,30 @@ export const checkAndPromoteBackupVolunteers = async (needId: string): Promise<b
         backupVolunteers: newBackupList,
         volunteerRegisteredAt: newRegisteredAtMap,
       });
+
+      const needTitle = data.title || 'احتياج ميداني';
+
+      // Send in-app notification to promoted volunteer
+      sendNotificationToUser(promotedVolunteerId, {
+        title: 'تم اعتمادك كمتطوع أساسي! 🛡️',
+        body: `تمت ترقيتك تلقائياً من قائمة الاحتياط لتصبح متطوعاً أساسياً في "${needTitle}". يرجى تأكيد حضورك الميداني خلال مهلة ساعة لتثبيت مقعدك.`,
+        type: 'backup_promoted',
+        data: {
+          needId,
+          screen: 'NeedDetails',
+        },
+      }).catch(() => {});
+
+      // Send in-app notification to expired volunteer
+      sendNotificationToUser(expiredVolunteerId, {
+        title: 'انتهاء مهلة تأكيد الحضور ⚠️',
+        body: `نظراً لعدم تأكيد الحضور الميداني في مهمة "${needTitle}" خلال مهلة الساعة، تم إتاحة المقعد لمتطوع من قائمة الاحتياط. يمكنك التسجيل مجدداً في أي وقت.`,
+        type: 'attendance_reminder',
+        data: {
+          needId,
+          screen: 'NeedDetails',
+        },
+      }).catch(() => {});
 
       console.log(`Auto-promoted backup volunteer ${promotedVolunteerId} to replace unconfirmed ${expiredVolunteerId}`);
       return true;

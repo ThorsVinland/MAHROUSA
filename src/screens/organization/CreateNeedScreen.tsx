@@ -278,7 +278,11 @@ export default function CreateNeedScreen({ navigation }: any) {
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
         {/* 1. عنوان الاحتياج */}
         <View style={styles.formGroup}>
           <Text style={styles.label}>عنوان الإعلان / الاحتياج</Text>
@@ -555,6 +559,9 @@ export default function CreateNeedScreen({ navigation }: any) {
             numberOfLines={4}
           />
         </View>
+
+        {/* Bottom Spacer for keyboard scrolling */}
+        <View style={{ height: 220 }} />
       </ScrollView>
 
       {/* Footer Submit */}
@@ -745,7 +752,7 @@ const getStyles = (Colors: any) =>
     },
     scrollContainer: {
       padding: 20,
-      paddingBottom: 40,
+      paddingBottom: 220,
     },
     formGroup: {
       marginBottom: 22,

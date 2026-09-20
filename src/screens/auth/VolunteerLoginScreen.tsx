@@ -124,6 +124,9 @@ export const VolunteerLoginScreen: React.FC<Props> = ({ navigation }) => {
             {errorMessage ? (
               <Text style={styles.errorMessage}>{errorMessage}</Text>
             ) : null}
+
+            {/* Bottom Spacer for keyboard scrolling */}
+            <View style={{ height: 140 }} />
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -141,9 +144,9 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingBottom: 40,
+    paddingTop: 10,
+    paddingBottom: 160,
     flexGrow: 1,
-    justifyContent: 'center',
   },
   headerBox: {
     alignItems: 'center',

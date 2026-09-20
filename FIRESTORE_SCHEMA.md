@@ -1,6 +1,6 @@
 # 🗺️ دليل وهيكلية قاعدة بيانات Firestore — منصة المحروسة (MAHROUSA)
 
-هذا الملف يحتوي على الدليل الشامل والمخطط المعماري لقاعدة بيانات Firestore الخاصة بمنصة وتطبيق **المحروسة (MAHROUSA)**، وهو موجه لمطور لوحة التحكم (Dashboard) لفهم بنية البيانات، المجموعات، الحقول، والعلاقات وسير العمل (Workflows).
+هذا الملف يحتوي على الدليل الشامل والمخطط المعماري لقاعدة بيانات Firestore الخاصة بمنصة وتطبيق **المحروسة (MAHROUSA)**، وهو موجه لمطور لوحة التحكم (Dashboard) لفهم بنية البيانات، المجموعات، الحقول، والعلاقات وسير العمل (Workflows) بما فيها الإشعارات والإعلانات الميدانية.
 
 ---
 
@@ -13,6 +13,8 @@ graph TD
     B -->|تقديم طلب ترقية| D[supervisor_requests]
     C -->|نشر إعلانات واحتياجات| E[needs]
     B -->|تسجيل وتطوع| E
+    B -->|إشعارات المتطوع| F["volunteers/{phone}/notifications"]
+    B -->|فريق المشرف| G["volunteers/{phone}/team"]
 ```
 
 ---
@@ -46,7 +48,7 @@ graph TD
 | `fullName` | `string` | الاسم الكامل للمتطوع |
 | `phoneNumber` | `string` | رقم الهاتف الأساسي |
 | `role` | `string` | القيمة دائماً `"volunteer"` |
-| `wilaya` | `string` | كود الولاية (من `"1"` إلى `"69"`) |
+| `wilaya` | `string` | كود الولاية (من `"01"` إلى `"69"`) |
 | `commune` | `string` | اسم أو كود البلدية |
 | `skill` | `string` | مهارة/تخصص المتطوع: (`"medical"`, `"logistics"`, `"construction"`, `"cooking"`, `"teaching"`, `"driving"`, `"other"`) |
 | `isSupervisor` | `boolean` | هل يملك رتبة مشرف؟ |
@@ -54,12 +56,24 @@ graph TD
 | `supervisorResources`| `map / object` | تفاصيل الموارد إن كان مشرفاً |
 | `createdAt` | `timestamp` | تاريخ التسجيل |
 
-### 📂 مجموعة فرعية لأعضاء الفريق: `/volunteers/{phoneNumber}/team/{memberId}`
+### 📂 1. مجموعة فرعية لأعضاء الفريق: `/volunteers/{phoneNumber}/team/{memberId}`
 * **`name`** (`string`): اسم عضو الفريق.
 * **`phone`** (`string`): رقم هاتف العضو.
 * **`role`** (`string`): دور العضو في الفريق (مثال: `"سائق / نقل"`, `"مساعد لوجستي"`, إلخ).
 * **`status`** (`string`): حالة التوافر (`"متاح"`).
 * **`createdAt`** (`timestamp`): تاريخ الإضافة إلى الفريق.
+
+### 🔔 2. مجموعة فرعية للإشعارات داخل التطبيق: `/volunteers/{phoneNumber}/notifications/{notificationId}`
+> **الهدف:** إرسال واستقبال الإشعارات والتنبيهات المباشرة للمتطوع (يظهر عدد غير المقروء منها كـ Badge فوق أيقونة الجرس في الصفحة الرئيسية).
+
+| الحقل (Field) | النوع (Type) | الوصف |
+| :--- | :--- | :--- |
+| `title` | `string` | عنوان الإشعار (مثال: "تهانينا! تمت ترقيتك إلى مشرف معتمد 🌟") |
+| `body` | `string` | نص الإشعار بالتفصيل |
+| `type` | `string` | نوع الإشعار: <br>• `"supervisor_upgrade_approved"`: قبول ترقية المشرف.<br>• `"supervisor_upgrade_rejected"`: رفض طلب الترقية.<br>• `"backup_promoted"`: ترقية من قائمة الاحتياط إلى الأساسي.<br>• `"attendance_reminder"`: تذكير تأكيد الحضور الميداني خلال مهلة الساعة.<br>• `"urgent_need"`: نداء استغاثة أو أزمة عاجلة.<br>• `"system"`: إشعار عام من المنصة. |
+| `isRead` | `boolean` | هل قرأ المتطوع الإشعار؟ (`false` للإشعارات الجديدة، `true` عند الفتح). |
+| `data` | `map / object` | بيانات إضافية للتوجيه التلقائي داخل التطبيق: <br>`{ needId: "...", screen: "SupervisorDashboard" \| "NeedDetails" }` |
+| `createdAt` | `timestamp` | وقت وتاريخ إرسال الإشعار (`serverTimestamp()`). |
 
 ---
 
@@ -77,7 +91,7 @@ graph TD
 | `role` | `string` | القيمة دائماً `"organization"` |
 | `orgType` | `string` | نوع المنظمة: (`"charity"` جمعية خيرية, `"red_crescent"` الهلال الأحمر, `"youth_club"` نادي شبابي, `"sports_club"` نادي رياضي, `"municipality"` إدارة بلدية, `"other"` أخرى) |
 | `legalNumber` | `string` | رقم الاعتماد القانوني / رقم التسجيل |
-| `wilaya` | `string` | كود الولاية المقر (من `"1"` إلى `"69"`) |
+| `wilaya` | `string` | كود الولاية المقر (من `"01"` إلى `"69"`) |
 | `commune` | `string` | البلدية المقر |
 | `managerName` / `repName` | `string` | اسم ممثل / رئيس الجمعية |
 | `managerPhone` / `repPhone`| `string` | رقم هاتف الممثل |
@@ -112,8 +126,10 @@ graph TD
 | `status` | `string` | حالة الطلب: (`"pending"` قيد الانتظار, `"approved"` مقبول, `"rejected"` مرفوض) |
 | `createdAt` | `timestamp` | تاريخ تقديم الطلب |
 
-> 📌 **إجراء لوحة التحكم عند قبول المشرف (`approved`):**
+> 📌 **إجراء لوحة التحكم الموصى به عند قبول المشرف (`approved`):**
 > ```javascript
+> import { doc, updateDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
+> 
 > // 1. تحديث حالة الطلب
 > await updateDoc(doc(db, "supervisor_requests", phoneNumber), {
 >   status: "approved"
@@ -129,6 +145,18 @@ graph TD
 > await updateDoc(doc(db, "volunteers", phoneNumber), {
 >   isSupervisor: true,
 >   hasPendingUpgrade: false
+> });
+> 
+> // 4. إرسال إشعار داخل التطبيق للمتطوع (يظهر له مباشرة كإشعار وإعلان في الرئيسية)
+> await addDoc(collection(db, "volunteers", phoneNumber, "notifications"), {
+>   title: "تهانينا! تمت ترقيتك إلى مشرف معتمد 🌟",
+>   body: "تمت الموافقة على طلب ترقيتك بنجاح من طرف إدارة المنصة. يمكنك الآن فتح لوحة تحكم المشرف وإدارة فريقك ومواردك اللوجستية.",
+>   type: "supervisor_upgrade_approved",
+>   isRead: false,
+>   data: {
+>     screen: "SupervisorDashboard"
+>   },
+>   createdAt: serverTimestamp()
 > });
 > ```
 
@@ -186,4 +214,12 @@ graph TD
    * إذا انقضت مهلة الساعة دون تأكيد الحضور، أو قام المتطوع الأساسي بالاعتذار/الإلغاء:
      * يُحذف المتطوع غير المؤكد من `volunteers`.
      * يتم ترقية أول متطوع من `backupVolunteers` (رأس القائمة) فوراً إلى `volunteers` مع بدء مهلة جديدة لساعة واحدة له.
+     * يُرسل إشعار داخل التطبيق للمتطوع المرقّى لتنبيهه بتأكيد الحضور.
 
+---
+
+## 📢 آلية إعلانات الصفحة الرئيسية (Dynamic Home Announcements):
+تتولد بنرات الإعلانات العلوية في الصفحة الرئيسية للمتطوع تلقائياً بناءً على الأحداث الحقيقية التالية:
+1. **قبول ترقية المشرف:** يظهر بنر احتفالي بموافقة الترقية مع زر سريع ينقله إلى لوحة تحكم المشرف.
+2. **الأزمات والاحتياجات العاجلة:** يظهر بنر أحمر نابض للأولويات القصوى (`priority: "urgent"`) لتشجيع الاستجابة الفورية.
+3. **تنبيهات تأكيد الحضور / الترقية من الاحتياط:** يظهر بنر تحذيري بالمهلة المتبقية لتأكيد الحضور الميداني وتجنب الاستبدال.

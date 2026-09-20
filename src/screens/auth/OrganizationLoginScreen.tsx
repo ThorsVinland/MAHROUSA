@@ -132,6 +132,9 @@ export const OrganizationLoginScreen: React.FC<Props> = ({ navigation }) => {
                 </Text>
               </TouchableOpacity>
             </View>
+
+            {/* Bottom Spacer for keyboard scrolling */}
+            <View style={{ height: 160 }} />
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -149,9 +152,9 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingBottom: 40,
+    paddingTop: 10,
+    paddingBottom: 160,
     flexGrow: 1,
-    justifyContent: 'center',
   },
   headerBox: {
     alignItems: 'center',

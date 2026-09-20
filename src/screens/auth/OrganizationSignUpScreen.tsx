@@ -210,6 +210,9 @@ export const OrganizationSignUpScreen: React.FC<Props> = ({ navigation }) => {
               loading={isLoading}
               disabled={isLoading}
             />
+
+            {/* Bottom Spacer for keyboard scrolling */}
+            <View style={{ height: 160 }} />
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -227,7 +230,9 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingBottom: 40,
+    paddingTop: 10,
+    paddingBottom: 180,
+    flexGrow: 1,
   },
   headerBox: {
     alignItems: 'center',
