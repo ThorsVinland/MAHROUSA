@@ -33,6 +33,7 @@ import {
 } from '../../data/homeMockData';
 import { useAuthStore } from '../../store/authStore';
 import { getWilayaInfo } from '../../utils/wilayaHelper';
+import { subscribeToLiveCrises } from '../../services/crisesService';
 import { WILAYAS } from '../../constants/algeria';
 import { TopBar } from '../../components/home/TopBar';
 import { GreetingSection } from '../../components/home/GreetingSection';
@@ -90,6 +91,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
   const [isAttendanceConfirmed, setIsAttendanceConfirmed] = useState(false);
 
+  const [liveCrises, setLiveCrises] = useState<MapMarker[]>(() => MAP_MARKERS.filter((m) => m.type === 'crisis'));
+
   // 1. Subscribe to Firestore in real-time
   useEffect(() => {
     setIsLoadingNeeds(true);
@@ -103,12 +106,19 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         setIsLoadingNeeds(false);
       }
     );
-    return () => unsubscribe && unsubscribe();
+
+    const unsubCrises = subscribeToLiveCrises((crises) => {
+      setLiveCrises(crises);
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+      if (unsubCrises) unsubCrises();
+    };
   }, []);
 
   // 2. Dynamic map preview markers
   const dynamicMarkers = useMemo<MapMarker[]>(() => {
-    const crisis = MAP_MARKERS.filter((m) => m.type === 'crisis');
     return [
       {
         id: 'user_base',
@@ -117,9 +127,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         longitude: userWilayaInfo.lng,
         type: 'resource',
       },
-      ...crisis,
+      ...liveCrises,
     ];
-  }, [userWilayaInfo]);
+  }, [userWilayaInfo, liveCrises]);
 
   // 3. Priority weight for sorting: urgent (3) > medium (2) > normal (1)
   const getPriorityWeight = (priority: string): number => {

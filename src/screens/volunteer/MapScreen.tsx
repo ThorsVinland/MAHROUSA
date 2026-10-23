@@ -3,7 +3,7 @@
 // Dynamic interactive map centered on volunteer's registered Wilaya
 // ============================================================
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,6 +15,7 @@ import { useAuthStore } from '../../store/authStore';
 import { getWilayaInfo } from '../../utils/wilayaHelper';
 import { SolidarityMap } from '../../components/map/SolidarityMap';
 import { ZoneDetailCard } from '../../components/map/ZoneDetailCard';
+import { subscribeToLiveCrises } from '../../services/crisesService';
 
 interface NavigationProp {
   navigate: (screen: string, params?: Record<string, unknown>) => void;
@@ -33,6 +34,17 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
   const { showAlert } = useAlert();
 
   const [filter, setFilter] = useState<FilterOption>('all');
+  const [liveCrises, setLiveCrises] = useState<MapMarker[]>(() => MAP_MARKERS.filter((m) => m.type === 'crisis'));
+
+  // Subscribe to real-time crises added from the dashboard
+  useEffect(() => {
+    const unsubscribe = subscribeToLiveCrises((crises) => {
+      setLiveCrises(crises);
+    });
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
 
   // Dynamic user wilaya from auth store
   const user = useAuthStore((state) => state.user);
@@ -48,7 +60,6 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
   });
 
   const allMarkers = useMemo<MapMarker[]>(() => {
-    const crisis = MAP_MARKERS.filter((m) => m.type === 'crisis');
     return [
       {
         id: 'user_base',
@@ -57,13 +68,11 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
         longitude: userWilayaInfo.lng,
         type: 'resource',
       },
-      ...crisis,
+      ...liveCrises,
     ];
-  }, [userWilayaInfo]);
+  }, [userWilayaInfo, liveCrises]);
 
-  const [selectedMarker, setSelectedMarker] = useState<MapMarker | null>(
-    MAP_MARKERS[1]
-  );
+  const [selectedMarker, setSelectedMarker] = useState<MapMarker | null>(null);
 
   const filteredMarkers = useMemo(() => {
     if (filter === 'crisis') return allMarkers.filter((m) => m.type === 'crisis');
@@ -105,7 +114,7 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
           onPress={() => setFilter('crisis')}
         >
           <Text style={[styles.chipText, filter === 'crisis' && styles.chipTextActive]}>
-            🔴 أزمات (3)
+            🔴 أزمات ({liveCrises.length})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity

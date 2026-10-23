@@ -50,12 +50,30 @@ export const SolidarityMap: React.FC<SolidarityMapProps> = ({
       .map((m) => {
         const isCrisis = m.type === 'crisis';
         const iconSymbol = isCrisis ? '🚨' : '📦';
-        const badgeLabel = isCrisis ? 'منطقة أزمة واحتياج عاجل' : 'موقع المتطوع / نقطة إمداد';
+        const pct = m.severityPercentage !== undefined && m.severityPercentage !== null ? Number(m.severityPercentage) : null;
+        const badgeLabel = isCrisis 
+          ? (pct !== null ? `منطقة أزمة (${pct}%)` : 'منطقة أزمة واحتياج عاجل')
+          : 'موقع المتطوع / نقطة إمداد';
         const badgeClass = isCrisis ? 'popup-badge-crisis' : 'popup-badge-resource';
+        const tagText = pct !== null ? `${m.city} (${pct}%)` : m.city;
+        const descText = m.description 
+          ? m.description.replace(/'/g, "\\'") 
+          : (isCrisis ? 'فرق التطوع مطلوبة لدعم المتضررين' : 'مركز نشاط المتطوع والدعم الميداني');
+        const progressBarHtml = pct !== null ? `
+          <div style="margin: 6px 0 4px 0;">
+            <div style="display:flex; justify-content:space-between; font-size:10px; font-weight:700; color:#475569; margin-bottom:2px;">
+              <span>نسبة حدة المشكل:</span>
+              <span style="color:#DC2626; font-weight:800;">${pct}%</span>
+            </div>
+            <div style="width:100%; height:5px; background:#E2E8F0; border-radius:999px; overflow:hidden;">
+              <div style="width:${pct}%; height:100%; background:${pct >= 75 ? '#DC2626' : pct >= 50 ? '#EA580C' : '#D97706'}; border-radius:999px;"></div>
+            </div>
+          </div>
+        ` : '';
 
         return `
           (function() {
-            var iconHtml = '<div class="${isCrisis ? 'crisis-marker' : 'resource-marker'}"><span>${iconSymbol}</span></div><div class="city-tag">${m.city}</div>';
+            var iconHtml = '<div class="${isCrisis ? 'crisis-marker' : 'resource-marker'}"><span>${iconSymbol}</span></div><div class="city-tag">${tagText}</div>';
             var customIcon = L.divIcon({
               className: 'custom-div-icon',
               html: iconHtml,
@@ -63,7 +81,7 @@ export const SolidarityMap: React.FC<SolidarityMapProps> = ({
               iconAnchor: [30, 24]
             });
             var marker = L.marker([${m.latitude}, ${m.longitude}], { icon: customIcon }).addTo(map);
-            var popupContent = '<div class="popup-box"><div class="popup-badge ${badgeClass}">${badgeLabel}</div><div class="popup-title">${m.city}</div><div class="popup-desc">${isCrisis ? 'فرق التطوع مطلوبة لدعم المتضررين' : 'مركز نشاط المتطوع والدعم الميداني'}</div></div>';
+            var popupContent = '<div class="popup-box"><div class="popup-badge ${badgeClass}">${badgeLabel}</div><div class="popup-title">${m.city}</div>${progressBarHtml}<div class="popup-desc">${descText}</div></div>';
             marker.bindPopup(popupContent);
             marker.on('click', function() {
               window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'marker_click', id: '${m.id}' }));

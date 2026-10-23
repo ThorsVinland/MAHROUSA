@@ -25,6 +25,7 @@ import { useAlert } from '../../context/AlertContext';
 import { useTheme } from '../../context/ThemeContext';
 import { MAP_MARKERS } from '../../data/homeMockData';
 import { createNeed, subscribeToAllNeeds } from '../../services/needsService';
+import { subscribeToLiveCrises } from '../../services/crisesService';
 import { useAuthStore } from '../../store/authStore';
 import { MapMarker } from '../../types/home.types';
 import { NeedType, PriorityLevel } from '../../types/need.types';
@@ -101,42 +102,47 @@ export default function CreateNeedScreen({ navigation }: any) {
   const [isEndDatePickerVisible, setIsEndDatePickerVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Published Crises (Mock + Live Firestore Needs)
+  // Published Crises (Mock + Live Firestore Crises + Live Firestore Needs)
   const [publishedCrises, setPublishedCrises] = useState<MapMarker[]>(() => {
     return MAP_MARKERS.filter((m) => m.type === 'crisis');
   });
 
   useEffect(() => {
-    try {
-      const unsubscribe = subscribeToAllNeeds((needs) => {
-        const firestoreCrisisMarkers: MapMarker[] = needs
-          .filter((n) => n.coordinates && n.coordinates.lat && n.coordinates.lng)
-          .map((n) => ({
-            id: n.id,
-            city: `${n.wilayaName || ''} - ${n.title}`,
-            latitude: n.coordinates!.lat,
-            longitude: n.coordinates!.lng,
-            type: n.priority === 'urgent' ? 'crisis' : 'resource',
-          }));
+    let currentNeedsCrises: MapMarker[] = [];
+    let currentDashboardCrises: MapMarker[] = MAP_MARKERS.filter((m) => m.type === 'crisis');
 
-        const defaultCrises = MAP_MARKERS.filter((m) => m.type === 'crisis');
-        const combined = [...defaultCrises];
-
-        firestoreCrisisMarkers.forEach((fMarker) => {
-          if (!combined.some((c) => c.id === fMarker.id)) {
-            combined.push(fMarker);
-          }
-        });
-
-        setPublishedCrises(combined);
+    const combineAll = () => {
+      const combined = [...currentDashboardCrises];
+      currentNeedsCrises.forEach((fMarker) => {
+        if (!combined.some((c) => c.id === fMarker.id)) {
+          combined.push(fMarker);
+        }
       });
+      setPublishedCrises(combined);
+    };
 
-      return () => {
-        if (unsubscribe) unsubscribe();
-      };
-    } catch (e) {
-      console.warn('Error loading live crises markers:', e);
-    }
+    const unsubCrises = subscribeToLiveCrises((crises) => {
+      currentDashboardCrises = crises;
+      combineAll();
+    });
+
+    const unsubNeeds = subscribeToAllNeeds((needs) => {
+      currentNeedsCrises = needs
+        .filter((n) => n.coordinates && n.coordinates.lat && n.coordinates.lng)
+        .map((n) => ({
+          id: n.id,
+          city: `${n.wilayaName || ''} - ${n.title}`,
+          latitude: n.coordinates!.lat,
+          longitude: n.coordinates!.lng,
+          type: n.priority === 'urgent' ? 'crisis' : 'resource',
+        }));
+      combineAll();
+    });
+
+    return () => {
+      if (unsubCrises) unsubCrises();
+      if (unsubNeeds) unsubNeeds();
+    };
   }, []);
 
   // Selected Origin Wilaya Object

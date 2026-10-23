@@ -44,6 +44,15 @@ export interface MapMarker {
   latitude: number;
   longitude: number;
   type: 'crisis' | 'resource' | 'meetup';
+  title?: string;
+  description?: string;
+  severityPercentage?: number;
+  severityLevel?: string;
+  wilayaCode?: string;
+  wilayaName?: string;
+  locationDetails?: string;
+  status?: string;
+  createdAt?: any;
 }
 
 export type HomeTabType = 'home' | 'map' | 'tasks' | 'profile';

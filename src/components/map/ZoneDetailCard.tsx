@@ -21,13 +21,16 @@ export const ZoneDetailCard: React.FC<ZoneDetailCardProps> = ({
   onViewNeeds,
 }) => {
   const isCrisis = marker.type === 'crisis';
+  const pct = marker.severityPercentage !== undefined && marker.severityPercentage !== null ? Number(marker.severityPercentage) : null;
 
   return (
     <View style={styles.card}>
       {/* Header: Title + Badge + Close */}
       <View style={styles.topRow}>
         <View style={styles.titleCol}>
-          <Text style={styles.cityName}>ولاية {marker.city}</Text>
+          <Text style={styles.cityName}>
+            {marker.title || `ولاية ${marker.city}`}
+          </Text>
           <View
             style={[
               styles.badge,
@@ -40,7 +43,9 @@ export const ZoneDetailCard: React.FC<ZoneDetailCardProps> = ({
                 isCrisis ? styles.crisisText : styles.resourceText,
               ]}
             >
-              {isCrisis ? '🔴 منطقة أزمة نشطة' : '🟢 نقطة إمداد لوجستي'}
+              {isCrisis 
+                ? (pct !== null ? `🔴 منطقة أزمة (${pct}%)` : '🔴 منطقة أزمة نشطة') 
+                : '🟢 نقطة إمداد لوجستي'}
             </Text>
           </View>
         </View>
@@ -56,18 +61,48 @@ export const ZoneDetailCard: React.FC<ZoneDetailCardProps> = ({
         )}
       </View>
 
+      {/* Severity Percentage Progress Bar if available */}
+      {pct !== null && (
+        <View style={styles.severityContainer}>
+          <View style={styles.severityHeader}>
+            <Text style={styles.severityLabel}>نسبة حدة المشكل:</Text>
+            <Text style={[styles.severityValue, { color: pct >= 75 ? Colors.urgent : pct >= 50 ? '#EA580C' : '#D97706' }]}>
+              {pct}% {pct >= 80 ? '• خطورة حرجة' : pct >= 50 ? '• خطورة مرتفعة' : '• خطورة متوسطة'}
+            </Text>
+          </View>
+          <View style={styles.progressBarTrack}>
+            <View 
+              style={[
+                styles.progressBarFill, 
+                { 
+                  width: `${pct}%`,
+                  backgroundColor: pct >= 75 ? Colors.urgent : pct >= 50 ? '#EA580C' : '#D97706' 
+                }
+              ]} 
+            />
+          </View>
+        </View>
+      )}
+
+      {/* Description if available */}
+      {marker.description ? (
+        <Text style={styles.descText} numberOfLines={2}>
+          {marker.description}
+        </Text>
+      ) : null}
+
       {/* Info Stats */}
       <View style={styles.statsRow}>
         <View style={styles.statItem}>
           <Ionicons name="people-outline" size={16} color={Colors.mainBlue} />
           <Text style={styles.statText}>
-            {isCrisis ? '20 متطوع مطلوب' : 'جاهزية الإمدادات'}
+            {isCrisis ? 'فرق تطوعية مطلوبة' : 'جاهزية الإمدادات'}
           </Text>
         </View>
         <View style={styles.statItem}>
-          <Ionicons name="alert-circle-outline" size={16} color={Colors.urgent} />
+          <Ionicons name="location-outline" size={16} color={Colors.urgent} />
           <Text style={styles.statText}>
-            {isCrisis ? 'شاحنات نقل ومؤن' : 'مركز وهران الميداني'}
+            ولاية {marker.city} {marker.locationDetails ? `(${marker.locationDetails})` : ''}
           </Text>
         </View>
       </View>
@@ -176,5 +211,46 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
     color: '#FFFFFF',
+  },
+  severityContainer: {
+    marginTop: 2,
+    marginBottom: 6,
+    padding: 8,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  severityHeader: {
+    flexDirection: 'row-reverse',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  severityLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+  },
+  severityValue: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  progressBarTrack: {
+    height: 6,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  descText: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    lineHeight: 16,
+    textAlign: 'right',
+    marginVertical: 4,
   },
 });
