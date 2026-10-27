@@ -34,7 +34,7 @@ export default function OrgMapScreen({ navigation }: OrgMapScreenProps) {
   const { showAlert } = useAlert();
 
   const [filter, setFilter] = useState<FilterOption>('all');
-  const [liveCrises, setLiveCrises] = useState<MapMarker[]>(() => MAP_MARKERS.filter((m) => m.type === 'crisis'));
+  const [liveCrises, setLiveCrises] = useState<MapMarker[]>([]);
 
   // Subscribe to real-time crises from dashboard
   useEffect(() => {

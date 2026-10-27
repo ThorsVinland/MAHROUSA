@@ -10,6 +10,7 @@ import VerifyOtpScreen from '../screens/auth/VerifyOtpScreen';
 import VolunteerMainScreen from '../screens/main/VolunteerMainScreen';
 import OrganizationMainScreen from '../screens/main/OrganizationMainScreen';
 import { useAuthStore } from '../store/authStore';
+import { registerForPushNotificationsAsync, startLiveNotificationListener } from '../services/pushNotificationService';
 
 export default function RootNavigator() { 
   const [currentScreen, setCurrentScreen] = useState('Loading'); // Loading, Splash, SelectRole, Register, Login, VerifyOTP, VolunteerMain, OrganizationMain
@@ -20,6 +21,15 @@ export default function RootNavigator() {
   
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const user = useAuthStore((state) => state.user);
+
+  // تسجيل جهاز المستخدم واستماع حي لجميع الإشعارات لإظهارها في شريط إشعارات الهاتف مباشرة
+  useEffect(() => {
+    registerForPushNotificationsAsync(user);
+    const unsubscribe = startLiveNotificationListener(user);
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [user]);
 
   useEffect(() => {
     const checkFirstLaunch = async () => {

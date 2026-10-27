@@ -61,6 +61,8 @@ export default function LoginScreen({ selectedRole, onGoToRegister, onBack, onGo
       console.error('Login error:', error);
       if (error?.message === 'ACCOUNT_PENDING') {
         showAlert('حساب قيد المراجعة', 'حساب الجمعية الخاص بك لا يزال قيد المراجعة ولم يتم تفعيله بعد.');
+      } else if (error?.code === 'permission-denied' || error?.message?.includes('permissions')) {
+        showAlert('صلاحيات Firebase', 'قاعدة بيانات Firestore مقفلة (Missing permissions). يرجى تحديث القواعد (Rules) في لوحة Firebase Console.');
       } else {
         showAlert('خطأ', 'حدث خطأ أثناء الاتصال بقاعدة البيانات، يرجى المحاولة لاحقاً.');
       }

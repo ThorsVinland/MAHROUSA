@@ -15,6 +15,8 @@ import OrgNeedsScreen from '../screens/organization/OrgNeedsScreen';
 import OrgProfileScreen from '../screens/organization/OrgProfileScreen';
 import CreateNeedScreen from '../screens/organization/CreateNeedScreen';
 import EmergencyModeScreen from '../screens/organization/EmergencyModeScreen';
+import NotificationsScreen from '../screens/common/NotificationsScreen';
+import { subscribeToLiveCrises } from '../services/crisesService';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -25,6 +27,17 @@ function OrganizationTabBar({ state, navigation }) {
   if (currentRouteName === 'OrgMap') activeTab = 'map';
   else if (currentRouteName === 'OrgNeeds') activeTab = 'tasks';
   else if (currentRouteName === 'OrgProfile') activeTab = 'profile';
+
+  const [activeCrisesCount, setActiveCrisesCount] = React.useState(0);
+
+  React.useEffect(() => {
+    const unsub = subscribeToLiveCrises((crises) => {
+      setActiveCrisesCount(crises.length);
+    });
+    return () => {
+      if (typeof unsub === 'function') unsub();
+    };
+  }, []);
 
   const handleTabChange = (tab) => {
     if (tab === 'home') navigation.navigate('OrgDashboard');
@@ -38,6 +51,7 @@ function OrganizationTabBar({ state, navigation }) {
       activeTab={activeTab}
       onTabChange={handleTabChange}
       tasksBadgeCount={0}
+      crisesBadgeCount={activeCrisesCount}
       labels={{
         home: 'الرئيسية',
         map: 'الخريطة',
@@ -77,6 +91,7 @@ export default function OrganizationNavigator({ onLogout }) {
       </Stack.Screen>
       <Stack.Screen name="CreateNeed" component={CreateNeedScreen} />
       <Stack.Screen name="EmergencyMode" component={EmergencyModeScreen} />
+      <Stack.Screen name="Notifications" component={NotificationsScreen} />
     </Stack.Navigator>
   );
 }

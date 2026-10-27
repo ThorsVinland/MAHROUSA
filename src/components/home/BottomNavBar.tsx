@@ -14,6 +14,7 @@ interface BottomNavBarProps {
   activeTab: HomeTabType;
   onTabChange?: (tab: HomeTabType) => void;
   tasksBadgeCount?: number;
+  crisesBadgeCount?: number;
   labels?: {
     home: string;
     map: string;
@@ -26,6 +27,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
   activeTab,
   onTabChange,
   tasksBadgeCount = 2,
+  crisesBadgeCount = 0,
   labels = {
     home: 'الرئيسية',
     map: 'الخريطة',
@@ -63,18 +65,25 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
           </Text>
         </TouchableOpacity>
 
-        {/* TAB 2: Map / الخريطة */}
+        {/* TAB 2: Map / الخريطة (With Active Crises Badge) */}
         <TouchableOpacity
           style={styles.tabItem}
           onPress={() => onTabChange?.('map')}
           activeOpacity={0.8}
         >
           {activeTab === 'map' && <View style={styles.activeIndicator} />}
-          <Ionicons
-            name={activeTab === 'map' ? 'map' : 'map-outline'}
-            size={23}
-            color={activeTab === 'map' ? Colors.mainBlue : Colors.placeholder}
-          />
+          <View style={styles.iconWrapper}>
+            <Ionicons
+              name={activeTab === 'map' ? 'map' : 'map-outline'}
+              size={23}
+              color={activeTab === 'map' ? Colors.mainBlue : Colors.placeholder}
+            />
+            {crisesBadgeCount > 0 && (
+              <View style={[styles.badge, styles.crisisBadge]}>
+                <Text style={styles.badgeText}>{crisesBadgeCount}</Text>
+              </View>
+            )}
+          </View>
           <Text
             style={[
               styles.tabLabel,
@@ -195,6 +204,21 @@ const getStyles = (Colors: any) => StyleSheet.create({
     backgroundColor: Colors.primaryNavy,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  crisisBadge: {
+    backgroundColor: '#DC2626',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+    minWidth: 17,
+    height: 17,
+    borderRadius: 8.5,
+    top: -4,
+    right: -9,
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.4,
+    shadowRadius: 2,
+    elevation: 3,
   },
   badgeText: {
     color: '#FFFFFF',

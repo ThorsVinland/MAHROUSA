@@ -69,7 +69,4 @@ export const NEXT_TASK: NextTask = {
 
 export const MAP_MARKERS: MapMarker[] = [
   { id: '1', city: 'وهران', latitude: 35.69, longitude: -0.63, type: 'resource' },
-  { id: '2', city: 'تيزي وزو', latitude: 36.71, longitude: 4.04, type: 'crisis' },
-  { id: '3', city: 'بجاية', latitude: 36.75, longitude: 5.06, type: 'crisis' },
-  { id: '4', city: 'جيجل', latitude: 36.82, longitude: 5.76, type: 'crisis' },
 ];

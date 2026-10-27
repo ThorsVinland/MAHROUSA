@@ -9,6 +9,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { BottomNavBar } from "../components/home/BottomNavBar";
 import { useAuthStore } from "../store/authStore";
 import { subscribeToVolunteerTasks } from "../services/tasksService";
+import { subscribeToLiveCrises } from "../services/crisesService";
 
 // Screens
 import HomeScreen from "../screens/volunteer/HomeScreen";
@@ -19,6 +20,7 @@ import NeedDetailsScreen from "../screens/volunteer/NeedDetailsScreen";
 import TaskTrackingScreen from "../screens/volunteer/TaskTrackingScreen";
 import SkillsSelectionScreen from "../screens/volunteer/SkillsSelectionScreen";
 import RatingScreen from "../screens/volunteer/RatingScreen";
+import NotificationsScreen from "../screens/common/NotificationsScreen";
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -34,6 +36,7 @@ function VolunteerTabBar({ state, navigation }) {
   const currentUserId = user?.id || user?.phone || "user_guest";
   const userPhone = user?.phone;
   const [activeTasksCount, setActiveTasksCount] = useState(0);
+  const [activeCrisesCount, setActiveCrisesCount] = useState(0);
 
   useEffect(() => {
     const unsub = subscribeToVolunteerTasks(
@@ -50,6 +53,16 @@ function VolunteerTabBar({ state, navigation }) {
     };
   }, [currentUserId, userPhone]);
 
+  // Subscribe to live crises count for the map badge
+  useEffect(() => {
+    const unsubCrises = subscribeToLiveCrises((crises) => {
+      setActiveCrisesCount(crises.length);
+    });
+    return () => {
+      if (typeof unsubCrises === "function") unsubCrises();
+    };
+  }, []);
+
   const handleTabChange = (tab) => {
     if (tab === "home") navigation.navigate("VolunteerHome");
     else if (tab === "map") navigation.navigate("VolunteerMap");
@@ -62,6 +75,7 @@ function VolunteerTabBar({ state, navigation }) {
       activeTab={activeTab}
       onTabChange={handleTabChange}
       tasksBadgeCount={activeTasksCount}
+      crisesBadgeCount={activeCrisesCount}
     />
   );
 }
@@ -97,6 +111,7 @@ export default function VolunteerNavigator({ onLogout }) {
       <Stack.Screen name="TaskTracking" component={TaskTrackingScreen} />
       <Stack.Screen name="SkillsSelection" component={SkillsSelectionScreen} />
       <Stack.Screen name="Rating" component={RatingScreen} />
+      <Stack.Screen name="Notifications" component={NotificationsScreen} />
     </Stack.Navigator>
   );
 }

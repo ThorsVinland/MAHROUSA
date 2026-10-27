@@ -66,8 +66,8 @@ export const ZoneDetailCard: React.FC<ZoneDetailCardProps> = ({
         <View style={styles.severityContainer}>
           <View style={styles.severityHeader}>
             <Text style={styles.severityLabel}>نسبة حدة المشكل:</Text>
-            <Text style={[styles.severityValue, { color: pct >= 75 ? Colors.urgent : pct >= 50 ? '#EA580C' : '#D97706' }]}>
-              {pct}% {pct >= 80 ? '• خطورة حرجة' : pct >= 50 ? '• خطورة مرتفعة' : '• خطورة متوسطة'}
+            <Text style={[styles.severityValue, { color: pct >= 75 ? '#DC2626' : pct >= 40 ? '#EA580C' : '#16A34A' }]}>
+              {pct}% {pct >= 75 ? '• عاجل (بطاقة حمراء)' : pct >= 40 ? '• متوسط (بطاقة برتقالية)' : '• عادي (بطاقة خضراء)'}
             </Text>
           </View>
           <View style={styles.progressBarTrack}>
@@ -76,7 +76,7 @@ export const ZoneDetailCard: React.FC<ZoneDetailCardProps> = ({
                 styles.progressBarFill, 
                 { 
                   width: `${pct}%`,
-                  backgroundColor: pct >= 75 ? Colors.urgent : pct >= 50 ? '#EA580C' : '#D97706' 
+                  backgroundColor: pct >= 75 ? '#DC2626' : pct >= 40 ? '#EA580C' : '#16A34A' 
                 }
               ]} 
             />

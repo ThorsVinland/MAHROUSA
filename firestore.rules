@@ -1,0 +1,48 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. حسابات وأدوار المستخدمين (تُقرأ عند تسجيل الدخول والتحقق)
+    match /users/{userId} {
+      allow read, write: if true;
+    }
+
+    // 2. بيانات المتطوعين والفرق والإشعارات التابعة لهم
+    match /volunteers/{volunteerId} {
+      allow read, write: if true;
+      match /{subCollection=**} {
+        allow read, write: if true;
+      }
+    }
+
+    // 3. الجمعيات والمؤسسات وحالات التفعيل
+    match /organizations/{orgId} {
+      allow read, write: if true;
+    }
+
+    // 4. الاحتياجات والمهام التطوعية
+    match /needs/{needId} {
+      allow read, write: if true;
+    }
+
+    // 5. الأزمات الوطنية ومناطق الطوارئ (الخريطة الحية)
+    match /crises/{crisisId} {
+      allow read, write: if true;
+    }
+
+    // 6. طلبات الترقية لمشرف
+    match /supervisor_requests/{requestId} {
+      allow read, write: if true;
+    }
+
+    // 7. سجلات الإشعارات والرسائل العامة
+    match /broadcast_logs/{logId} {
+      allow read, write: if true;
+    }
+
+    // قاعدة شاملة لبيئة العمل والتطوير (تمنع خطأ Missing or insufficient permissions)
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

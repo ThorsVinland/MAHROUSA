@@ -34,6 +34,7 @@ import {
 import { useAuthStore } from '../../store/authStore';
 import { getWilayaInfo } from '../../utils/wilayaHelper';
 import { subscribeToLiveCrises } from '../../services/crisesService';
+import { subscribeToUserNotifications } from '../../services/notificationsService';
 import { WILAYAS } from '../../constants/algeria';
 import { TopBar } from '../../components/home/TopBar';
 import { GreetingSection } from '../../components/home/GreetingSection';
@@ -91,7 +92,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
   const [isAttendanceConfirmed, setIsAttendanceConfirmed] = useState(false);
 
-  const [liveCrises, setLiveCrises] = useState<MapMarker[]>(() => MAP_MARKERS.filter((m) => m.type === 'crisis'));
+  const [liveCrises, setLiveCrises] = useState<MapMarker[]>([]);
+  const [notificationCount, setNotificationCount] = useState<number>(0);
 
   // 1. Subscribe to Firestore in real-time
   useEffect(() => {
@@ -111,11 +113,20 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       setLiveCrises(crises);
     });
 
+    const unsubNotifs = subscribeToUserNotifications(
+      'volunteer',
+      user?.phone,
+      (notifs) => {
+        setNotificationCount(notifs.length);
+      }
+    );
+
     return () => {
       if (unsubscribe) unsubscribe();
       if (unsubCrises) unsubCrises();
+      if (typeof unsubNotifs === 'function') unsubNotifs();
     };
-  }, []);
+  }, [user?.phone]);
 
   // 2. Dynamic map preview markers
   const dynamicMarkers = useMemo<MapMarker[]>(() => {
@@ -303,7 +314,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <TopBar
-        notificationCount={3}
+        notificationCount={notificationCount}
         wilaya={userWilayaInfo.name}
         onNotificationPress={() => navigation?.navigate('Notifications')}
         onLocationPress={handleLocationPress}

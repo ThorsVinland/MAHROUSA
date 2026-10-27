@@ -155,6 +155,8 @@ export default function RegisterScreen({ role, onBack, onGoToLogin, onGoToVerify
       console.error('Register error:', error);
       if (error?.message === 'ACCOUNT_PENDING') {
         showAlert('حساب قيد المراجعة', 'هذا الرقم مسجل مسبقاً كجمعية وهو قيد المراجعة حالياً.');
+      } else if (error?.code === 'permission-denied' || error?.message?.includes('permissions')) {
+        showAlert('صلاحيات Firebase', 'قاعدة بيانات Firestore مقفلة (Missing permissions). يرجى تحديث القواعد (Rules) في لوحة Firebase Console.');
       } else {
         showAlert('خطأ', 'حدث خطأ أثناء الاتصال بقاعدة البيانات، يرجى المحاولة لاحقاً.');
       }

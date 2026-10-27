@@ -44,7 +44,7 @@ const PRIORITIES: { id: PriorityLevel; label: string; badge: string; color: stri
   { id: 'normal', label: 'عادي', badge: 'بطاقة خضراء', color: '#27AE60', bg: '#DCFCE7', borderColor: '#27AE60' },
 ];
 
-export default function CreateNeedScreen({ navigation }: any) {
+export default function CreateNeedScreen({ navigation, route }: any) {
   const { colors: Colors, isDarkMode } = useTheme();
   const { showAlert }: any = useAlert();
   const { user } = useAuthStore();
@@ -52,16 +52,20 @@ export default function CreateNeedScreen({ navigation }: any) {
 
   const orgUser = user as any;
 
+  const initialCrisisTitle = route?.params?.crisisTitle;
+  const initialWilaya = route?.params?.wilaya;
+  const initialDesc = route?.params?.crisisDescription;
+
   // Form State
-  const [title, setTitle] = useState('');
+  const [title, setTitle] = useState(initialCrisisTitle ? `استجابة لأزمة ${initialCrisisTitle}` : '');
   const [needType, setNeedType] = useState<NeedType>('يد عاملة');
   const [quantity, setQuantity] = useState('10');
   const [phone, setPhone] = useState(orgUser?.phone || orgUser?.phoneNumber || '');
-  const [description, setDescription] = useState('');
+  const [description, setDescription] = useState(initialDesc ? `دعم عاجل لمواجهة أزمة ${initialCrisisTitle}: ${initialDesc}` : '');
   const [priority, setPriority] = useState<PriorityLevel>('urgent');
 
   // Origin Location (الانطلاق / نقطة التجمع)
-  const [selectedWilayaCode, setSelectedWilayaCode] = useState(orgUser?.wilaya || '16');
+  const [selectedWilayaCode, setSelectedWilayaCode] = useState(initialWilaya || orgUser?.wilaya || '16');
   const [locationDetails, setLocationDetails] = useState('');
   const [pickedLocation, setPickedLocation] = useState<{ lat: number; lng: number } | null>(null);
 
@@ -102,14 +106,12 @@ export default function CreateNeedScreen({ navigation }: any) {
   const [isEndDatePickerVisible, setIsEndDatePickerVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Published Crises (Mock + Live Firestore Crises + Live Firestore Needs)
-  const [publishedCrises, setPublishedCrises] = useState<MapMarker[]>(() => {
-    return MAP_MARKERS.filter((m) => m.type === 'crisis');
-  });
+  // Published Crises (Live Firestore Crises + Live Firestore Needs)
+  const [publishedCrises, setPublishedCrises] = useState<MapMarker[]>([]);
 
   useEffect(() => {
     let currentNeedsCrises: MapMarker[] = [];
-    let currentDashboardCrises: MapMarker[] = MAP_MARKERS.filter((m) => m.type === 'crisis');
+    let currentDashboardCrises: MapMarker[] = [];
 
     const combineAll = () => {
       const combined = [...currentDashboardCrises];
