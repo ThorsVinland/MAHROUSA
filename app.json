@@ -32,10 +32,23 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./src/assets/icons/logo.png",
+          "color": "#208AEF"
+        }
       ]
     ],
     "experiments": {
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "3fe39a69-e652-4ee3-871b-9e01cc9da69d"
+      }
+    },
+    "owner": "adnane46"
   }
 }

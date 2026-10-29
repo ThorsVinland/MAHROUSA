@@ -46,7 +46,7 @@ try {
  * إنشاء قناة الإشعارات في الأندرويد بأعلى درجة أولوية (MAX) لإظهار الإشعار في شريط الحالة
  */
 export async function ensureNotificationChannel() {
-  if (Platform.OS === 'android') {
+  if (Platform.OS === 'android' && !isExpoGo) {
     try {
       await Notifications.setNotificationChannelAsync('default', {
         name: 'تنبيهات المحروسة العاجلة',
