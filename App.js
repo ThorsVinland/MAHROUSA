@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { LogBox } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import RootNavigator from './src/navigation/RootNavigator';
 import { ThemeProvider } from './src/context/ThemeContext';
 import { AlertProvider } from './src/context/AlertContext';
@@ -18,6 +19,9 @@ LogBox.ignoreLogs([
 import CustomToast from './src/components/common/CustomToast';
 
 export default function App() {
+  // 🔴 سطر حذف جميع البيانات المخزنة للتطبيق على الهاتف (فك التعليق عند الحاجة لتصفير بيانات التطبيق):
+  // useEffect(() => { AsyncStorage.clear(); console.log('🧹 [Storage] All local data cleared successfully.'); }, []);
+
   // تفعيل تسجيل Native Notify
   registerNNPushToken(NATIVE_NOTIFY_CONFIG.appId, NATIVE_NOTIFY_CONFIG.appToken, {
     onRegistered: (res) => console.log('✅ [Native Notify] Registered device successfully:', res?.status),
