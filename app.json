@@ -18,7 +18,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.adnane46.MAHROUSA"
+      "package": "com.adnane46.MAHROUSA",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "output": "single",
