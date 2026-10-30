@@ -12,6 +12,7 @@ import OrganizationMainScreen from '../screens/main/OrganizationMainScreen';
 import { useAuthStore } from '../store/authStore';
 import { registerForPushNotificationsAsync, startLiveNotificationListener } from '../services/pushNotificationService';
 import { registerIndieID } from 'native-notify';
+import { NATIVE_NOTIFY_CONFIG } from '../config/nativeNotify';
 
 export default function RootNavigator() { 
   const [currentScreen, setCurrentScreen] = useState('Loading'); // Loading, Splash, SelectRole, Register, Login, VerifyOTP, VolunteerMain, OrganizationMain
@@ -28,7 +29,7 @@ export default function RootNavigator() {
     registerForPushNotificationsAsync(user);
     if (user?.phone) {
       try {
-        registerIndieID(String(user.phone).trim(), 34005, 'ILijd1fKUZshCckkCJC7EF');
+        registerIndieID(String(user.phone).trim(), NATIVE_NOTIFY_CONFIG.appId, NATIVE_NOTIFY_CONFIG.appToken);
       } catch (_err) {}
     }
     const unsubscribe = startLiveNotificationListener(user);
