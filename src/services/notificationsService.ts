@@ -42,22 +42,49 @@ export function subscribeToUserNotifications(
     let personalNotifs: AppNotification[] = [];
 
     const mergeAndNotify = () => {
-      const map = new Map<string, AppNotification>();
-      
-      // Add public notifications
-      publicNotifs.forEach((n) => map.set(n.id, n));
-      // Add personal notifications (personal can overwrite if matching id)
-      personalNotifs.forEach((n) => map.set(n.id, n));
+      const seenSignatures = new Set<string>();
+      const result: AppNotification[] = [];
 
-      const merged = Array.from(map.values());
-      // Sort descending by createdAt
-      merged.sort((a, b) => {
-        const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0);
-        const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0);
+      // نجمع الإشعارات الشخصية والعامة
+      const combined = [...personalNotifs, ...publicNotifs];
+
+      // ترتيب تنازلي حسب تاريخ الإنشاء (الأحدث أولاً)
+      combined.sort((a, b) => {
+        const timeA = a.createdAt?.toMillis
+          ? a.createdAt.toMillis()
+          : a.createdAt?.seconds
+          ? a.createdAt.seconds * 1000
+          : 0;
+        const timeB = b.createdAt?.toMillis
+          ? b.createdAt.toMillis()
+          : b.createdAt?.seconds
+          ? b.createdAt.seconds * 1000
+          : 0;
         return timeB - timeA;
       });
 
-      callback(merged);
+      // إزالة أي إشعار مكرر (بنفس العنوان والنص في نفس التوقيت أو بنفس المعرف)
+      for (const n of combined) {
+        const time = n.createdAt?.toMillis
+          ? n.createdAt.toMillis()
+          : n.createdAt?.seconds
+          ? n.createdAt.seconds * 1000
+          : 0;
+
+        // نافذة زمنية مدتها 5 دقائق لدمج الإشعارات المتطابقة
+        const timeBucket = Math.floor(time / 300000);
+        const signature = `${(n.title || '').trim()}::${(n.body || '').trim()}::${timeBucket}`;
+
+        if (seenSignatures.has(n.id) || (time > 0 && seenSignatures.has(signature))) {
+          continue; // عنصر مكرر، نتخطاه
+        }
+
+        seenSignatures.add(n.id);
+        if (time > 0) seenSignatures.add(signature);
+        result.push(n);
+      }
+
+      callback(result);
     };
 
     // 1. Subscribe to public broadcast notifications (crises alerts & resolutions)
